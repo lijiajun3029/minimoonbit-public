@@ -18,3 +18,7 @@ rv64_failed_tests/
 /*.s
 
 __pycache__
+
+test_language/*
+!test_language/main.mbt
+submit.zip
