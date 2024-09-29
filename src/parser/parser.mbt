@@ -1,14 +1,3 @@
-// Token = @lex.Token，批量替换，避免重复定义
-enum Token {
-  Number(Int)
-  LParen
-  RParen
-  Add
-  Sub
-  Mul
-  Div
-} derive(Show)
-
 enum Expression {
   Number(Int)
   Plus(Expression, Expression)
@@ -17,16 +6,16 @@ enum Expression {
   Divide(Expression, Expression)
 } derive(Show)
 
-type Parser[V] (ArrayView[Token]) -> (V, ArrayView[Token])?
+type Parser[V] (ArrayView[@lex.Token]) -> (V, ArrayView[@lex.Token])?
 
 fn parse[V](
   self : Parser[V],
-  tokens : ArrayView[Token]
-) -> (V, ArrayView[Token])? {
+  tokens : ArrayView[@lex.Token]
+) -> (V, ArrayView[@lex.Token])? {
   (self._)(tokens)
 }
 
-fn ptoken(predicate : (Token) -> Bool) -> Parser[Token] {
+fn ptoken(predicate : (@lex.Token) -> Bool) -> Parser[@lex.Token] {
   fn {
     [hd, .. as tl] => if predicate(hd) { Some((hd, tl)) } else { None }
     [] => None
@@ -94,14 +83,14 @@ fn Parser::ref[Value](ref : Ref[Parser[Value]]) -> Parser[Value] {
   fn(input) { ref.val.parse(input) }
 }
 
-let lparen : Parser[Token] = ptoken(
+let lparen : Parser[@lex.Token] = ptoken(
   fn {
     LParen => true
     _ => false
   },
 )
 
-let rparen : Parser[Token] = ptoken(
+let rparen : Parser[@lex.Token] = ptoken(
   fn {
     RParen => true
     _ => false
@@ -110,14 +99,14 @@ let rparen : Parser[Token] = ptoken(
 
 let number : Parser[Expression] = ptoken(
   fn {
-    Token::Number(_) => true
+    @lex.Token::Number(_) => true
     _ => false
   },
 ).map(fn { Number(value) => Expression::Number(value) })
 
 // 定义互递归函数
 // atomic = Value / "(" expression ")"
-fn atomic(tokens : ArrayView[Token]) -> (Expression, ArrayView[Token])? {
+fn atomic(tokens : ArrayView[@lex.Token]) -> (Expression, ArrayView[@lex.Token])? {
   lparen
   .and(
     expression, // 引用函数
@@ -128,7 +117,7 @@ fn atomic(tokens : ArrayView[Token]) -> (Expression, ArrayView[Token])? {
   .parse(tokens)
 }
 
-fn combine(tokens : ArrayView[Token]) -> (Expression, ArrayView[Token])? {
+fn combine(tokens : ArrayView[@lex.Token]) -> (Expression, ArrayView[@lex.Token])? {
   Parser(atomic)
   .and(
     ptoken(
@@ -157,7 +146,7 @@ fn combine(tokens : ArrayView[Token]) -> (Expression, ArrayView[Token])? {
   .parse(tokens)
 }
 
-fn expression(tokens : ArrayView[Token]) -> (Expression, ArrayView[Token])? {
+fn expression(tokens : ArrayView[@lex.Token]) -> (Expression, ArrayView[@lex.Token])? {
   Parser(combine)
   .and(
     ptoken(

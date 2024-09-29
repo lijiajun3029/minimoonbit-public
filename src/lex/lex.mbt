@@ -1,4 +1,4 @@
-enum Token {
+pub enum Token {
   Number(Int)
   LParen
   RParen
@@ -8,7 +8,7 @@ enum Token {
   Div
 } derive(Show)
 
-struct Context {
+pub struct Context {
   str : String
   mut offset : Int
   array : Array[Token]
