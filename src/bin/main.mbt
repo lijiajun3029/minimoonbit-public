@@ -89,6 +89,7 @@ fn CompileStatus::step(self : CompileStatus) -> Bool {
   match self.curr_stage {
     Parse => {
       let source_code = self.source_code.unwrap()
+      println(source_code)
       let parsed = @util.die("TODO: parse")
       self.ast = Some(parsed)
     }

@@ -1,85 +1,4 @@
-struct Context {
-  str : String
-  mut offset : Int
-  array : Array[Token]
-}
-
-fn lex(context : Context) -> Unit {
-  let { offset, str, array } = context
-  if offset >= str.length() {
-    return
-  }
-  match str[offset] {
-    '+' => {
-      array.push(Add)
-      context.offset += 1
-      lex(context)
-    }
-    '-' => {
-      array.push(Sub)
-      context.offset += 1
-      lex(context)
-    }
-    '*' => {
-      array.push(Mul)
-      context.offset += 1
-      lex(context)
-    }
-    '/' => {
-      array.push(Div)
-      context.offset += 1
-      lex(context)
-    }
-    '(' => {
-      array.push(LParen)
-      context.offset += 1
-      lex(context)
-    }
-    ')' => {
-      array.push(RParen)
-      context.offset += 1
-      lex(context)
-    }
-    ' ' | '\n' | '\t' | '\r' => {
-      context.offset += 1
-      lex(context)
-    }
-    ch => if ch >= '0' && ch <= '9' { lex_number(context) } else { panic() }
-  }
-}
-
-fn lex_number(context : Context) -> Unit {
-  let { offset, str, .. } = context
-  let number = "\{str[offset]}"
-  context.offset += 1
-  lex_number_rest(context, number)
-}
-
-fn lex_number_rest(context : Context, number : String) -> Unit {
-  let { offset, str, array } = context
-  if offset >= str.length() {
-    array.push(Number(@strconv.parse_int?(number).unwrap()))
-    return
-  }
-  let ch = str[offset]
-  if ch >= '0' && ch <= '9' {
-    context.offset += 1
-    lex_number_rest(context, number + ch.to_string())
-  } else {
-    array.push(Number(@strconv.parse_int?(number).unwrap()))
-    lex(context)
-  }
-}
-
-test {
-  let array = []
-  lex({ str: "-10123 -+ - 523 103 (5))", offset: 0, array })
-  inspect!(
-    array,
-    content="[Sub, Number(10123), Sub, Add, Sub, Number(523), Number(103), LParen, Number(5), RParen, RParen]",
-  )
-}
-
+// Token = @lex.Token，批量替换，避免重复定义
 enum Token {
   Number(Int)
   LParen
@@ -273,13 +192,13 @@ let parser : Parser[Expression] = Parser(expression)
 test {
   let input = "1 + 2 - 3"
   let tokens = []
-  lex({ str: input, offset: 0, array: tokens })
+  @lex.lex({ str: input, offset: 0, array: tokens })
   inspect!(tokens, content="[Number(1), Add, Number(2), Sub, Number(3)]")
   let (expr, _) = parser.parse(tokens[:]).unwrap()
   inspect!(expr, content="Minus(Plus(Number(1), Number(2)), Number(3))")
   let input = "1 + 2 * 3 - 6"
   let tokens = []
-  lex({ str: input, offset: 0, array: tokens })
+  @lex.lex({ str: input, offset: 0, array: tokens })
   inspect!(
     tokens,
     content="[Number(1), Add, Number(2), Mul, Number(3), Sub, Number(6)]",
@@ -290,28 +209,3 @@ test {
     content="Minus(Plus(Number(1), Multiply(Number(2), Number(3))), Number(6))",
   )
 }
-
-fn main {
-  println("test")
-}
-// fn pparser() -> Parser[Expression] {
-//   // 首先定义空引用
-//   let expression_ref : Ref[Parser[Expression]] = { val : fn{ _ => None } }
-
-//   // atomic : Number | LParen expr RParen;
-//   let atomic =  // 利用引用定义
-//     (lparen.and(ref(expression_ref)).and(rparen).map(fn { ((_, expr), _) => expr}))
-//       .or(number)
-
-//   // combine : atomic ( (Mul | Div) atomic)*;
-//   let combine = atomic.and(multiply.or(divide).and(atomic).many()).map(fn {
-//     ...
-//   })
-
-//   // expression : combine ( (Add | Sub) combine)*;
-//   expression_ref.val = combine.and(plus.or(minus).and(combine).many()).map(fn {
-//     ...
-//   })
-
-//   expression_ref.val
-// }
