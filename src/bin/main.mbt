@@ -89,9 +89,14 @@ fn CompileStatus::step(self : CompileStatus) -> Bool {
   match self.curr_stage {
     Parse => {
       let source_code = self.source_code.unwrap()
-      println(source_code)
       let parsed = @util.die("TODO: parse")
-      self.ast = Some(parsed)
+      println(source_code)
+      let input = "1 + 2 - 3"
+      let tokens = []
+      @lex.lex({ str: input, offset: 0, array: tokens })
+      // let (expr, _) = @parser.parser.parse(tokens[:]).unwrap()
+      // todo
+      self.ast = parsed
     }
     Typecheck => {
       let typechecked = @util.die("TODO: typecheck")

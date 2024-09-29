@@ -8,7 +8,7 @@ enum Expression {
 
 type Parser[V] (ArrayView[@lex.Token]) -> (V, ArrayView[@lex.Token])?
 
-fn parse[V](
+pub fn parse[V](
   self : Parser[V],
   tokens : ArrayView[@lex.Token]
 ) -> (V, ArrayView[@lex.Token])? {
@@ -176,7 +176,7 @@ fn expression(tokens : ArrayView[@lex.Token]) -> (Expression, ArrayView[@lex.Tok
   .parse(tokens)
 }
 
-let parser : Parser[Expression] = Parser(expression)
+pub let parser : Parser[Expression] = Parser(expression)
 
 test {
   let input = "1 + 2 - 3"

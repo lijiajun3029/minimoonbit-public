@@ -24,3 +24,14 @@
 
   Tokens部分中NUMBER: [0-9]+表示一个单词NUMBER的结构和规则，即0-9数字匹配1次或多次（有限次，超出数据类型最大长度即为错误输入）。
 
+  ## src/top.mbt
+    Syntax: 各种语法结构；例如Double(3.14)。
+    Kind:   基本数据类型。
+    Op:     基本运算符，这与Syntax中Prim相关联，后者用来表示具体的基本运算操作。  
+    Fundef: 函数定义。
+    Type:   各种数据类型。
+    Type::is_ptr_like   判断类型是否为ptr的函数。
+    Type::is_float_like 判断类型是否像float的函数。
+    Type::size_of   计算类型大小的函数。
+    Type::op_equal  判断两个类型是否相同的函数。
+

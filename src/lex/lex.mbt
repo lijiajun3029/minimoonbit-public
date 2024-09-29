@@ -88,4 +88,5 @@ test {
     array,
     content="[Sub, Number(10123), Sub, Add, Sub, Number(523), Number(103), LParen, Number(5), RParen, RParen]",
   )
+  println("TODO lex")
 }
