@@ -28,7 +28,7 @@ fn Stages::next(self : Stages) -> Stages {
     Stages::Typecheck => Stages::Knf
     Stages::Knf => Stages::KnfOpt
     Stages::KnfOpt => Stages::Closure
-    Stages::Closure => @util.die("TODO")
+    Stages::Closure => Asm
     Stages::Asm => Stages::Finished
     Stages::Finished => Stages::Finished
   }
@@ -64,9 +64,10 @@ fn CompileStatus::initialize(
     closure_ir: None,
     asm: None,
   }
+  println(start_stage)
   match start_stage {
     Parse => v.source_code = Some(file)
-    Typecheck => v.ast = Some(@types.Syntax::from_json!(@json.parse!(file)))
+    Typecheck => v.ast = Some(@types.Syntax::from_json!(@json.parse!(file)))  // todo
     Knf => v.typechecked = Some(@types.Syntax::from_json!(@json.parse!(file)))
     KnfOpt => {
       v.knf = Some(@knf.Knf::from_json!(@json.parse!(file)))
@@ -82,20 +83,60 @@ fn CompileStatus::initialize(
 }
 
 /// Run the next stage of compilation. Returns true if the compilation is finished.
-fn CompileStatus::step(self : CompileStatus) -> Bool {
+fn CompileStatus::step(self : CompileStatus) -> Bool{
   if self.curr_stage >= self.end_stage {
     return true
   }
   match self.curr_stage {
     Parse => {
       let source_code = self.source_code.unwrap()
-      let parsed = @util.die("TODO: parse")
       println(source_code)
+      // test
       let input = "1 + 2 - 3"
       let tokens = []
       @lex.lex({ str: input, offset: 0, array: tokens })
+      println(tokens)
+      println("end lex")
+
+      let mut code_string=""
+      try {
+        code_string="let a = 1" // core.json don't parse "let"
+        let ast: @types.Syntax?=Some(@types.Syntax::from_json!(@json.parse!(code_string)))
+        println(ast)
+      } catch {
+        @json.InvalidChar(_, _) => println("An error occurred: Invalid character")
+        @json.InvalidEof => println("An error occurred: Unexpected EOF")
+        @json.InvalidNumber(_, _) => println("An error occurred: Invalid number")
+        @json.InvalidIdentEscape(_) => println("An error occurred: Invalid identifier escape")
+        _ =>println("Syntax error")
+      }
+      try {
+        code_string="true"  // core.json parse 'true', but Syntax from_json don't handle "true"
+        let ast: @types.Syntax?=Some(@types.Syntax::from_json!(@json.parse!(code_string)))
+        println(ast)
+      } catch {
+        @json.InvalidChar(_, _) => println("An error occurred: Invalid character")
+        @json.InvalidEof => println("An error occurred: Unexpected EOF")
+        @json.InvalidNumber(_, _) => println("An error occurred: Invalid number")
+        @json.InvalidIdentEscape(_) => println("An error occurred: Invalid identifier escape")
+        _ =>println("Syntax error")
+      }
+
+      try {
+        code_string="true1"  // core.json don't parse 'true1'
+        let ast: @types.Syntax?=Some(@types.Syntax::from_json!(@json.parse!(code_string)))
+        println(ast)
+      } catch {
+        @json.InvalidChar(_, _) => println("An error occurred: Invalid character")
+        @json.InvalidEof => println("An error occurred: Unexpected EOF")
+        @json.InvalidNumber(_, _) => println("An error occurred: Invalid number")
+        @json.InvalidIdentEscape(_) => println("An error occurred: Invalid identifier escape")
+        _ =>println("Syntax error")
+      }
       // let (expr, _) = @parser.parser.parse(tokens[:]).unwrap()
-      // todo
+      // println(expr)
+      // self.ast = expr
+      let parsed = @util.die("TODO: parse")
       self.ast = parsed
     }
     Typecheck => {
@@ -136,7 +177,7 @@ fn CompileStatus::output(self : CompileStatus, json : Bool) -> String {
       Knf => @json.stringify(self.typechecked.unwrap().to_json())
       KnfOpt => @json.stringify(self.knf.unwrap().to_json())
       Closure => @json.stringify(self.opt_knf.unwrap().to_json())
-      Asm => @util.die("TODO")
+      Asm => @json.stringify(self.closure_ir.unwrap().to_json())
       Finished => @riscv.print_functions(self.asm.unwrap())
     }
   } else {
@@ -146,7 +187,7 @@ fn CompileStatus::output(self : CompileStatus, json : Bool) -> String {
       Knf => self.typechecked.unwrap().to_string()
       KnfOpt => self.knf.unwrap().to_string()
       Closure => self.opt_knf.unwrap().to_string()
-      Asm => @util.die("TODO")
+      Asm => self.closure_ir.unwrap().to_string()
       Finished => @riscv.print_functions(self.asm.unwrap())
     }
   }
@@ -161,6 +202,7 @@ fn main {
   // Testing directives
   let json = Ref::new(false)
   let start_stage = Ref::new(Stages::Parse)
+  // let start_stage = Ref::new(Stages::Typecheck)  // test
   let end_stage = Ref::new(Stages::Finished)
   let knf_interpreter = Ref::new(false)
   let closure_interpreter = Ref::new(false)

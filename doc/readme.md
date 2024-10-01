@@ -25,7 +25,7 @@
   Tokens部分中NUMBER: [0-9]+表示一个单词NUMBER的结构和规则，即0-9数字匹配1次或多次（有限次，超出数据类型最大长度即为错误输入）。
 
   ## src/top.mbt
-    Syntax: 各种语法结构；例如Double(3.14)。
+    Syntax: 各种语法结构；例如Double(3.14)，相关用例请见src/utils.mbt测试部分。
     Kind:   基本数据类型。
     Op:     基本运算符，这与Syntax中Prim相关联，后者用来表示具体的基本运算操作。  
     Fundef: 函数定义。

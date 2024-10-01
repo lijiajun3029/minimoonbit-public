@@ -1,3 +1,6 @@
+// 表达式语法解析
+
+// Expression枚举用于构建表达式抽象语法树：每个枚举变体代表一种表达式且允许递归构建表达式。
 enum Expression {
   Number(Int)
   Plus(Expression, Expression)

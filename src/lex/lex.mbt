@@ -1,3 +1,6 @@
+// 表达式词法解析
+
+// Token枚举用于表示源代码中识别出的词法单元。
 pub enum Token {
   Number(Int)
   LParen
@@ -88,5 +91,12 @@ test {
     array,
     content="[Sub, Number(10123), Sub, Add, Sub, Number(523), Number(103), LParen, Number(5), RParen, RParen]",
   )
+  // todo
+  // let array = []
+  // lex({ str: "let a=1", offset: 0, array })
+  // inspect!(
+  //   array,
+  //   content="[let, a, ",
+  // )
   println("TODO lex")
 }
