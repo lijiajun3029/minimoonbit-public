@@ -9,6 +9,7 @@ enum Expression {
   Divide(Expression, Expression)
 } derive(Show)
 
+// 使用type定义一个新类型：这个新类型是一个函数。
 type Parser[V] (ArrayView[@lex.Token]) -> (V, ArrayView[@lex.Token])?
 
 pub fn parse[V](
@@ -18,13 +19,16 @@ pub fn parse[V](
   (self._)(tokens)
 }
 
+// 判断一个单词是否符合语法，单词本身以及位置等。
 fn ptoken(predicate : (@lex.Token) -> Bool) -> Parser[@lex.Token] {
-  fn {
+  // 直接返回一个函数作为Parser[@lex.Token]
+  fn {  // 省略参数
     [hd, .. as tl] => if predicate(hd) { Some((hd, tl)) } else { None }
     [] => None
   }
 }
 
+// 如果语法解析成功，对解析结果进行转化。
 fn map[I, O](self : Parser[I], f : (I) -> O) -> Parser[O] {
   fn {
     input =>
@@ -35,12 +39,13 @@ fn map[I, O](self : Parser[I], f : (I) -> O) -> Parser[O] {
   }
 }
 
+// 顺序解析：顺序解析，若遇到失败则返回None，提前退出解析。
 fn and[V1, V2](self : Parser[V1], parser2 : Parser[V2]) -> Parser[(V1, V2)] {
   fn {
     input =>
       self
       .parse(input)
-      .bind(
+      .bind(  // 调用bind者，本身为None，直接返回None；否则解析parser2
         fn {
           (value, rest) =>
             parser2
@@ -51,6 +56,7 @@ fn and[V1, V2](self : Parser[V1], parser2 : Parser[V2]) -> Parser[(V1, V2)] {
   }
 }
 
+// 尝试解析：尝试解析每一个部分，若都失败才返回None。
 fn or[Value](self : Parser[Value], parser2 : Parser[Value]) -> Parser[Value] {
   fn {
     input =>
@@ -61,6 +67,7 @@ fn or[Value](self : Parser[Value], parser2 : Parser[Value]) -> Parser[Value] {
   }
 }
 
+// 重复解析：0次或多次，直到失败为止。
 fn many[Value : Show](self : Parser[Value]) -> Parser[Array[Value]] {
   fn(input) {
     let cumul = []
@@ -82,6 +89,7 @@ fn many[Value : Show](self : Parser[Value]) -> Parser[Array[Value]] {
   }
 }
 
+// 递归定义：延迟定义并未使用
 fn Parser::ref[Value](ref : Ref[Parser[Value]]) -> Parser[Value] {
   fn(input) { ref.val.parse(input) }
 }
@@ -100,6 +108,20 @@ let rparen : Parser[@lex.Token] = ptoken(
   },
 )
 
+let mul_div : Parser[@lex.Token] = ptoken(
+    fn {
+      Mul | Div => true
+      _ => false
+    },
+)
+
+let add_sub : Parser[@lex.Token] = ptoken(
+    fn {
+      Add | Sub => true
+      _ => false
+    },
+)
+
 let number : Parser[Expression] = ptoken(
   fn {
     @lex.Token::Number(_) => true
@@ -107,12 +129,15 @@ let number : Parser[Expression] = ptoken(
   },
 ).map(fn { Number(value) => Expression::Number(value) })
 
+
+
 // 定义互递归函数
-// atomic = Value / "(" expression ")"
+// atomic = "(" expression ")" | Value
+// 使用组合子构建的解析器atomic：从左到右解析表达式或数值tokens
 fn atomic(tokens : ArrayView[@lex.Token]) -> (Expression, ArrayView[@lex.Token])? {
   lparen
   .and(
-    expression, // 引用函数
+    expression, // 引用函数,expression函数自动类型转换为Parser
   )
   .and(rparen)
   .map(fn { ((_, expr), _) => expr })
@@ -120,15 +145,11 @@ fn atomic(tokens : ArrayView[@lex.Token]) -> (Expression, ArrayView[@lex.Token])
   .parse(tokens)
 }
 
+// 使用组合子构建的解析器combine：从左到右解析atomic和乘或除运算符（递归）
 fn combine(tokens : ArrayView[@lex.Token]) -> (Expression, ArrayView[@lex.Token])? {
   Parser(atomic)
   .and(
-    ptoken(
-      fn {
-        Mul | Div => true
-        _ => false
-      },
-    )
+    mul_div
     .and(atomic)
     .many(),
   )
@@ -149,15 +170,11 @@ fn combine(tokens : ArrayView[@lex.Token]) -> (Expression, ArrayView[@lex.Token]
   .parse(tokens)
 }
 
+// 使用组合子构建的解析器expression：从左到右解析combine和加或减运算符（递归）
 fn expression(tokens : ArrayView[@lex.Token]) -> (Expression, ArrayView[@lex.Token])? {
   Parser(combine)
   .and(
-    ptoken(
-      fn {
-        Add | Sub => true
-        _ => false
-      },
-    )
+    add_sub
     .and(combine)
     .many(),
   )
@@ -179,15 +196,21 @@ fn expression(tokens : ArrayView[@lex.Token]) -> (Expression, ArrayView[@lex.Tok
   .parse(tokens)
 }
 
+// 返回函数代表的解析器。
 pub let parser : Parser[Expression] = Parser(expression)
 
 test {
+  // 字符串输入
   let input = "1 + 2 - 3"
+  // 词法解析
   let tokens = []
   @lex.lex({ str: input, offset: 0, array: tokens })
   inspect!(tokens, content="[Number(1), Add, Number(2), Sub, Number(3)]")
+  // 语法解析（自顶向下的解释器组合子）
   let (expr, _) = parser.parse(tokens[:]).unwrap()
+  println(expr)
   inspect!(expr, content="Minus(Plus(Number(1), Number(2)), Number(3))")
+
   let input = "1 + 2 * 3 - 6"
   let tokens = []
   @lex.lex({ str: input, offset: 0, array: tokens })
@@ -200,4 +223,17 @@ test {
     expr,
     content="Minus(Plus(Number(1), Multiply(Number(2), Number(3))), Number(6))",
   )
+
+  // let input = "+ + 2 * 3 - 6"  // 报错
+  // let tokens = []
+  // @lex.lex({ str: input, offset: 0, array: tokens })
+  // inspect!(
+  //   tokens,
+  //   content="[Add, Add, Number(2), Mul, Number(3), Sub, Number(6)]",
+  // )
+  // let (expr, _) = parser.parse(tokens[:]).unwrap()
+  // inspect!(
+  //   expr,
+  //   content="Minus(Plus(Add, Multiply(Number(2), Number(3))), Number(6))",
+  // )
 }
