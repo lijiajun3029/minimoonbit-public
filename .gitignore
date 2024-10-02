@@ -19,6 +19,6 @@ rv64_failed_tests/
 
 __pycache__
 
-test_language/*
-!test_language/main.mbt
+# test_language/*
+# !test_language/main.mbt
 submit.zip
