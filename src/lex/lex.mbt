@@ -72,16 +72,24 @@ pub fn lex(context : Context) -> Unit {
       context.array.push(Semicolon)
       context.offset += 1
     }
-    // 数字
-    ch => if ch >= '0' && ch <= '9' { lex_number(context) } else { panic() }
-    // 关键字和标识符号
-    ch => if is_alpha(ch) {
-        lex_identifier(context)
-      }
+    ch => if is_number(ch) {
+            // 数字
+            lex_number(context)
+          } else if is_alpha(ch) { 
+            // 关键字和标识符
+            lex_identifier(context)
+          } else {
+            panic()
+            }
   }
 }
 
 // 匹配数字
+// 整数，todo浮点数
+fn is_number(ch: Char) -> Bool {
+  ch >= '0' && ch <= '9'
+}
+
 fn lex_number(context : Context) -> Unit {
   let { offset, str, .. } = context
   let number = "\{str[offset]}"
@@ -148,7 +156,7 @@ test {
   // lex({ str: "let a=1", offset: 0, array })
   // inspect!(
   //   array,
-  //   content="[let, a, ",
+  //   content="[Let, a, ",
   // )
   println("TODO lex")
 }

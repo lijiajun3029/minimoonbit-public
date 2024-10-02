@@ -1,3 +1,4 @@
+// 较大的词法单元列表
 // Token枚举用于表示源代码中识别出的词法单元。
 pub enum Token {
   Number(Int) //  整数
@@ -13,7 +14,7 @@ pub enum Token {
   Loop  // loop
   For // for
   While // while
-
+  
   // 关键词
   Let       //  let
   If        //  if
