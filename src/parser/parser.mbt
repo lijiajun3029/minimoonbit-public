@@ -224,6 +224,19 @@ test {
     content="Minus(Plus(Number(1), Multiply(Number(2), Number(3))), Number(6))",
   )
 
+  let input = "1/2-(3)"
+  let tokens = []
+  @lex.lex({ str: input, offset: 0, array: tokens })
+  inspect!(
+    tokens,
+    content="[Number(1), Div, Number(2), Sub, LParen, Number(3), RParen]",
+  )
+  let (expr, _) = parser.parse(tokens[:]).unwrap()
+  inspect!(
+    expr,
+    content="Minus(Divide(Number(1), Number(2)), Number(3))",
+  )
+
   // let input = "+ + 2 * 3 - 6"  // 报错
   // let tokens = []
   // @lex.lex({ str: input, offset: 0, array: tokens })
