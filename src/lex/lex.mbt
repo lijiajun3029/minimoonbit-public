@@ -1,4 +1,4 @@
-// 表达式词法解析
+// minimoonbit词法解析
 
 pub struct Context {
   str : String
@@ -6,23 +6,23 @@ pub struct Context {
   array : Array[Token]
 }
 
-pub fn push_token() -> Unit{
-  // 推入一个词法单元并递增偏移量
-}
-
 pub fn lex(context : Context) -> Unit {
+  // 方法1
+  // 基于字符匹配，进行状态转移
   let { offset, str, array } = context
   if offset >= str.length() {
     return
   }
-  // 大量分支容易遗漏
+  
   match str[offset] {
+    // 运算符
     '+' => {
       array.push(Add)
       context.offset += 1
       lex(context)
     }
     '-' => {
+      // todo ->
       array.push(Sub)
       context.offset += 1
       lex(context)
@@ -33,10 +33,30 @@ pub fn lex(context : Context) -> Unit {
       lex(context)
     }
     '/' => {
+      // todo // (\r\n)
       array.push(Div)
       context.offset += 1
       lex(context)
     }
+    '=' => {
+      // todo ==
+      array.push(Assign)
+      context.offset += 1
+      lex(context)
+    }
+    '>' => {
+      // todo >=
+      array.push(Gt)
+      context.offset += 1
+      lex(context)
+    }
+    '<' => {
+      // todo <=
+      array.push(Lt)
+      context.offset += 1
+      lex(context)
+    }
+    // 括号
     '(' => {
       array.push(LParen)
       context.offset += 1
@@ -55,23 +75,40 @@ pub fn lex(context : Context) -> Unit {
     '}' => {
       context.array.push(RBrace)
       context.offset += 1
+      lex(context)
     }
     '[' => {
       context.array.push(LBracket)
       context.offset += 1
+      lex(context)
     }
     ']' => {
       context.array.push(RBracket)
       context.offset += 1
+      lex(context)
     }
     ' ' | '\n' | '\t' | '\r' => {
+      // 空格等直接忽略
+      context.offset += 1
+      lex(context)
+    }
+    ',' => {
+      context.array.push(Comma)
       context.offset += 1
       lex(context)
     }
     ';' => {
       context.array.push(Semicolon)
       context.offset += 1
+      lex(context)
     }
+    ':' => {
+      // todo ：：
+      context.array.push(Colon)
+      context.offset += 1
+      lex(context)
+    }
+
     ch => if is_number(ch) {
             // 数字
             lex_number(context)
@@ -80,67 +117,7 @@ pub fn lex(context : Context) -> Unit {
             lex_identifier(context)
           } else {
             panic()
-            }
-  }
-}
-
-// 匹配数字
-// 整数，todo浮点数
-fn is_number(ch: Char) -> Bool {
-  ch >= '0' && ch <= '9'
-}
-
-fn lex_number(context : Context) -> Unit {
-  let { offset, str, .. } = context
-  let number = "\{str[offset]}"
-  context.offset += 1
-  lex_number_rest(context, number)
-}
-
-fn lex_number_rest(context : Context, number : String) -> Unit {
-  let { offset, str, array } = context
-  if offset >= str.length() {
-    array.push(Number(@strconv.parse_int?(number).unwrap()))
-    return
-  }
-  let ch = str[offset]
-  if ch >= '0' && ch <= '9' {
-    context.offset += 1
-    lex_number_rest(context, number + ch.to_string())
-  } else {
-    array.push(Number(@strconv.parse_int?(number).unwrap()))
-    lex(context)
-  }
-}
-
-// 匹配关键词和标识符
-// 判断字符是否为字母或下划线
-fn is_alpha(ch: Char) -> Bool {
-  (ch >= 'a' && ch <= 'z') ||
-  (ch >= 'A' && ch <= 'Z') ||
-  ch == '_'
-}
-
-// 判断字符是否为字母或数字或下划线
-fn is_alphanumeric(ch: Char) -> Bool {
-  is_alpha(ch) || (ch >= '0' && ch <= '9')
-}
-
-// 匹配关键词和标识符
-fn lex_identifier(context: Context) -> Unit {
-  let start = context.offset
-  while context.offset < context.str.length() && is_alphanumeric(context.str[context.offset]) {
-    context.offset += 1
-  }
-  let ident = context.str.substring(start=start,end=context.offset)
-  match ident {
-    "let" => context.array.push(Let)
-    "if" => context.array.push(If)
-    "else" => context.array.push(Else)
-    "fn" => context.array.push(Fn)
-    "true" => context.array.push(True)
-    "false" => context.array.push(False)
-    _ => context.array.push(Identifier(ident))
+          }
   }
 }
 
@@ -151,12 +128,29 @@ test {
     array,
     content="[Sub, Number(10123), Sub, Add, Sub, Number(523), Number(103), LParen, Number(5), RParen, RParen]",
   )
-  // todo
-  // let array = []
-  // lex({ str: "let a=1", offset: 0, array })
-  // inspect!(
-  //   array,
-  //   content="[Let, a, ",
-  // )
+
+  let array = []
+  lex({ str: "let a=1", offset: 0, array })
+  inspect!(
+    array,
+    content="[Let, Identifier(\"a\"), Assign, Number(1)]"
+  )
+
+  let array = []
+  lex({ str: "let b1=11", offset: 0, array })
+  println(array)
+  inspect!(
+    array,
+    content="[Let, Identifier(\"b1\"), Assign, Number(11)]"
+  )
+
+  let array = []
+  lex({ str: "let a=Int(11)", offset: 0, array })
+  println(array)
+  inspect!(
+    array,
+    content="[Let, Identifier(\"a\"), Assign, Int, LParen, Number(11), RParen]"
+  )
+
   println("TODO lex")
 }

@@ -17,7 +17,7 @@ def find_mbt_files(directory):
 
 def extract_tokens(text):
     """
-    Extract words and symbols from the given text using regular expressions.
+    Extract words, operators, and brackets from the given text using regular expressions.
 
     Args:
         text (str): The text to extract tokens from.
@@ -25,9 +25,27 @@ def extract_tokens(text):
     Returns:
         List[str]: A list of tokens.
     """
-    # This regex matches words (including underscores) and programming symbols
-    # Adjust the pattern if your definition of a token differs
-    pattern = r'\b\w+\b|[+\-*/=<>!&|]+'
+    # Define a list of operators and brackets to be recognized
+    operators = [
+        '->', '>=', '<=', '==', '!=', '++', '--', '+=', '-=', '*=', '/=', '%=',
+        '&&', '||', '<<', '>>', '**', '//', '/*', '*/', '+=', '-=', '*=', '/=', '%=',
+        '+=', '-=', '*=', '/=', '%=', '+=', '-=', '*=', '/=', '%=',
+        '+', '-', '*', '/', '%', '=', '>', '<', '!', '&', '|', '^', '~', '?', ':','::', '.', ','
+    ]
+    brackets = ['(', ')', '{', '}', '[', ']', ';', ',']
+
+    # Remove duplicate operators
+    operators = sorted(set(operators), key=lambda x: -len(x))  # Sort by length descending
+
+    # Escape operators and brackets for regex
+    escaped_ops = [re.escape(op) for op in operators]
+    escaped_brackets = [re.escape(br) for br in brackets]
+
+    # Combine into a single regex pattern
+    # Words: \b\w+\b
+    # Operators and brackets are matched as separate tokens
+    pattern = r'\b\w+\b|' + '|'.join(escaped_ops) + '|' + '|'.join(escaped_brackets)
+
     return re.findall(pattern, text)
 
 def count_tokens_in_files(files):

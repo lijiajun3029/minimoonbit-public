@@ -1,20 +1,24 @@
-// 较大的词法单元列表
+// 较大的词法单元列表，参考https://github.com/rust-lang/rust/blob/master/compiler/rustc_ast/src/token.rs
+
 // Token枚举用于表示源代码中识别出的词法单元。
-pub enum Token {
+pub enum Token_max {
   Number(Int) //  整数
   Identifier(String)  // 标识符
 
-  // 函数
-  Bool    // Bool
-  Int     // Int
+  // 声明类型or调用函数
+  Unit  // Unit
+  Bool  // Bool
+  Int   // Int
   Double  // Double
+  Array // Array
   Main  // main
+  Not // not
 
   // 循环
   Loop  // loop
   For // for
   While // while
-  
+
   // 关键词
   Let       //  let
   If        //  if
@@ -29,10 +33,10 @@ pub enum Token {
   Mul //  *  
   Div //  /
   
-  Eq  // =
+  Assign  // =
+  EqEq // ==
   Lt // <
   Le  // <=
-  EqEq // ==
   Ne  // !=
   Ge  // >=
   Gt  // >
@@ -54,6 +58,8 @@ pub enum Token {
 
   // 其他
   Arrow // ->
+  Comment // 注释//
+  // WS // [ \t\r\n]+ -> skip
   // 等等
-
+  
 } derive(Show)
