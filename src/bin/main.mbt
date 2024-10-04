@@ -92,52 +92,20 @@ fn CompileStatus::step(self : CompileStatus) -> Bool{
       let source_code = self.source_code.unwrap()
       println(source_code)
       // test
-      let input = "1 + 2 - 3"
+      // let source_code = "1 + 2 - 3"
       let tokens = []
-      @lex.lex({ str: input, offset: 0, array: tokens })
+      @lex.lex({ str: source_code, offset: 0, array: tokens })
       println(tokens)
       println("end lex")
-
-      let mut code_string=""
-      try {
-        code_string="let a = 1" // core.json don't parse "let"
-        let ast: @types.Syntax?=Some(@types.Syntax::from_json!(@json.parse!(code_string)))
-        println(ast)
-      } catch {
-        @json.InvalidChar(_, _) => println("An error occurred: Invalid character")
-        @json.InvalidEof => println("An error occurred: Unexpected EOF")
-        @json.InvalidNumber(_, _) => println("An error occurred: Invalid number")
-        @json.InvalidIdentEscape(_) => println("An error occurred: Invalid identifier escape")
-        _ =>println("Syntax error")
-      }
-      try {
-        code_string="true"  // core.json parse 'true', but Syntax from_json don't handle "true"
-        let ast: @types.Syntax?=Some(@types.Syntax::from_json!(@json.parse!(code_string)))
-        println(ast)
-      } catch {
-        @json.InvalidChar(_, _) => println("An error occurred: Invalid character")
-        @json.InvalidEof => println("An error occurred: Unexpected EOF")
-        @json.InvalidNumber(_, _) => println("An error occurred: Invalid number")
-        @json.InvalidIdentEscape(_) => println("An error occurred: Invalid identifier escape")
-        _ =>println("Syntax error")
-      }
-
-      try {
-        code_string="true1"  // core.json don't parse 'true1'
-        let ast: @types.Syntax?=Some(@types.Syntax::from_json!(@json.parse!(code_string)))
-        println(ast)
-      } catch {
-        @json.InvalidChar(_, _) => println("An error occurred: Invalid character")
-        @json.InvalidEof => println("An error occurred: Unexpected EOF")
-        @json.InvalidNumber(_, _) => println("An error occurred: Invalid number")
-        @json.InvalidIdentEscape(_) => println("An error occurred: Invalid identifier escape")
-        _ =>println("Syntax error")
-      }
+      let (parsed, _) = @parser.parse_syntax(tokens[:]).unwrap()
+      // println(parsed)
       // let (expr, _) = @parser.parser.parse(tokens[:]).unwrap()
       // println(expr)
       // self.ast = expr
-      let parsed = @util.die("TODO: parse")
-      self.ast = parsed
+      // let parsed = @util.die("TODO: parse")
+      self.ast =Some(parsed)
+      println(self.ast)
+      println("end parse")
     }
     Typecheck => {
       let typechecked = @util.die("TODO: typecheck")

@@ -1,13 +1,17 @@
-// 表达式语法解析
+// 语法解析
 
 // Expression枚举用于构建表达式抽象语法树：每个枚举变体代表一种表达式且允许递归构建表达式。
-enum Expression {
-  Number(Int)
-  Plus(Expression, Expression)
-  Minus(Expression, Expression)
-  Multiply(Expression, Expression)
-  Divide(Expression, Expression)
-} derive(Show)
+
+// 解析操作符并映射到 Op 枚举
+fn map_op(token: @lex.Token) -> Option[@types.Op] {
+  match token {
+    @lex.Token::Add => Some(@types.Op::Add)
+    @lex.Token::Sub => Some(@types.Op::Sub)
+    @lex.Token::Mul => Some(@types.Op::Mul)
+    @lex.Token::Div => Some(@types.Op::Div)
+    _ => None
+  }
+}
 
 // 使用type定义一个新类型：这个新类型是一个函数。
 type Parser[V] (ArrayView[@lex.Token]) -> (V, ArrayView[@lex.Token])?
@@ -122,19 +126,39 @@ let add_sub : Parser[@lex.Token] = ptoken(
     },
 )
 
-let number : Parser[Expression] = ptoken(
+let number : Parser[@types.Syntax] = ptoken(
   fn {
     @lex.Token::Number(_) => true
     _ => false
   },
-).map(fn { Number(value) => Expression::Number(value) })
+).map(fn {
+  Number(value) => @types.Syntax::Int(value)
+  _ => @util.die("")
+  })
 
-
-
+let parse_type : Parser[@types.Type] = ptoken(
+  fn {
+      Unit => true
+      Bool => true
+      Int => true
+      Double => true
+      Tuple => true
+      Array => true
+      _ => false
+    },
+  ).map(fn {
+    Unit => @types.Type::Unit
+    Bool => @types.Type::Bool
+    Int => @types.Type::Int
+    Double => @types.Type::Double
+    // Tuple => @types.Type::Tuple(Array[Type])  // todo
+    // todo
+    })
+  
 // 定义互递归函数
 // atomic = "(" expression ")" | Value
 // 使用组合子构建的解析器atomic：从左到右解析表达式或数值tokens
-fn atomic(tokens : ArrayView[@lex.Token]) -> (Expression, ArrayView[@lex.Token])? {
+fn atomic(tokens : ArrayView[@lex.Token]) -> (@types.Syntax, ArrayView[@lex.Token])? {
   lparen
   .and(
     expression, // 引用函数,expression函数自动类型转换为Parser
@@ -146,7 +170,7 @@ fn atomic(tokens : ArrayView[@lex.Token]) -> (Expression, ArrayView[@lex.Token])
 }
 
 // 使用组合子构建的解析器combine：从左到右解析atomic和乘或除运算符（递归）
-fn combine(tokens : ArrayView[@lex.Token]) -> (Expression, ArrayView[@lex.Token])? {
+fn combine(tokens : ArrayView[@lex.Token]) -> (@types.Syntax, ArrayView[@lex.Token])? {
   Parser(atomic)
   .and(
     mul_div
@@ -160,8 +184,8 @@ fn combine(tokens : ArrayView[@lex.Token]) -> (Expression, ArrayView[@lex.Token]
         list.fold(
           init=e,
           fn {
-            e, (Mul, expr) => Multiply(e, expr)
-            e, (_, expr) => Divide(e, expr)
+            e, (@lex.Token::Mul, expr) => @types.Syntax::Prim(e, expr,@types.Op::Mul,kind=None)
+            e, (@lex.Token::Div, expr) => @types.Syntax::Prim(e, expr,@types.Op::Div,kind=None)
           },
         )
       }
@@ -171,7 +195,7 @@ fn combine(tokens : ArrayView[@lex.Token]) -> (Expression, ArrayView[@lex.Token]
 }
 
 // 使用组合子构建的解析器expression：从左到右解析combine和加或减运算符（递归）
-fn expression(tokens : ArrayView[@lex.Token]) -> (Expression, ArrayView[@lex.Token])? {
+fn expression(tokens : ArrayView[@lex.Token]) -> (@types.Syntax, ArrayView[@lex.Token])? {
   Parser(combine)
   .and(
     add_sub
@@ -184,8 +208,8 @@ fn expression(tokens : ArrayView[@lex.Token]) -> (Expression, ArrayView[@lex.Tok
         let result = list.fold(
           init=e,
           fn {
-            e, (Add, expr) => Plus(e, expr)
-            e, (_, expr) => Minus(e, expr)
+            e, (Add, expr) => @types.Syntax::Prim(e, expr,@types.Op::Add,kind=None)
+            e, (Sub, expr) => @types.Syntax::Prim(e, expr,@types.Op::Sub,kind=None)
           },
         )
         println("fold: \{e} \{list} -> \{result}")
@@ -196,8 +220,51 @@ fn expression(tokens : ArrayView[@lex.Token]) -> (Expression, ArrayView[@lex.Tok
   .parse(tokens)
 }
 
-// 返回函数代表的解析器。
-pub let parser : Parser[Expression] = Parser(expression)
+// 添加 let 语句的解析器
+fn let_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+  ptoken(fn {
+    @lex.Token::Let => true
+    _ => false
+  })
+  .and(ptoken(fn {
+    Identifier(_) => true
+    _ => false
+  }).map(fn {
+    @lex.Token::Identifier(name) => name
+    })
+  )
+  .and(ptoken(fn {
+    Colon => true
+    _ => false
+  }))
+  .and(parse_type) // 假设有一个解析类型的函数
+  .and(ptoken(fn {
+    Assign => true
+    _ => false
+  }))
+  .and(expression)
+  .and(ptoken(fn {
+    Semicolon => true
+    _ => false
+  }))
+  .and(expression)
+  .map(fn {
+    (((((((_,name),_,), ty), _), expr1), _), expr2) => @types.Syntax::Let((name, ty), expr1, expr2) 
+  })
+  .parse(tokens)
+}
+
+// 扩展 parser 以支持 let 语句和表达式
+pub fn parse_syntax(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+  // 优先级等 todo
+  match let_statement(tokens){
+    None=>match expression(tokens){
+      None => None
+      _ as ast => ast
+    }
+    _ as ast => ast
+  }
+}
 
 test {
   // 字符串输入
@@ -207,9 +274,9 @@ test {
   @lex.lex({ str: input, offset: 0, array: tokens })
   inspect!(tokens, content="[Number(1), Add, Number(2), Sub, Number(3)]")
   // 语法解析（自顶向下的解释器组合子）
-  let (expr, _) = parser.parse(tokens[:]).unwrap()
+  let (expr, _) = parse_syntax(tokens[:]).unwrap()
   println(expr)
-  inspect!(expr, content="Minus(Plus(Number(1), Number(2)), Number(3))")
+  inspect!(expr, content="Prim(Prim(Int(1), Int(2), Add, kind=None), Int(3), Sub, kind=None)")
 
   let input = "1 + 2 * 3 - 6"
   let tokens = []
@@ -218,10 +285,10 @@ test {
     tokens,
     content="[Number(1), Add, Number(2), Mul, Number(3), Sub, Number(6)]",
   )
-  let (expr, _) = parser.parse(tokens[:]).unwrap()
+  let (expr, _) = parse_syntax(tokens[:]).unwrap()
   inspect!(
-    expr,
-    content="Minus(Plus(Number(1), Multiply(Number(2), Number(3))), Number(6))",
+    expr,    
+    content="Prim(Prim(Int(1), Prim(Int(2), Int(3), Mul, kind=None), Add, kind=None), Int(6), Sub, kind=None)",
   )
 
   let input = "1/2-(3)"
@@ -231,10 +298,10 @@ test {
     tokens,
     content="[Number(1), Div, Number(2), Sub, LParen, Number(3), RParen]",
   )
-  let (expr, _) = parser.parse(tokens[:]).unwrap()
+  let (expr, _) = parse_syntax(tokens[:]).unwrap()
   inspect!(
     expr,
-    content="Minus(Divide(Number(1), Number(2)), Number(3))",
+    content="Prim(Prim(Int(1), Int(2), Div, kind=None), Int(3), Sub, kind=None)",
   )
 
   // let input = "+ + 2 * 3 - 6"  // 报错
@@ -249,4 +316,19 @@ test {
   //   expr,
   //   content="Minus(Plus(Add, Multiply(Number(2), Number(3))), Number(6))",
   // )
+  
+  // let语句
+  let tokens = []
+  @lex.lex({ str: "let a:Int=1;2", offset: 0, array: tokens })
+  println(tokens)
+  inspect!(
+    tokens,
+    content="[Let, Identifier(\"a\"), Colon, Int, Assign, Number(1), Semicolon, Number(2)]"
+  )
+  let (expr, _) = parse_syntax(tokens[:]).unwrap()
+  println(expr)
+  inspect!(
+    expr,
+    content="Let((\"a\", Int), Int(1), Int(2))"
+  )
 }

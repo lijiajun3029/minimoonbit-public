@@ -129,8 +129,6 @@ let number : Parser[Expression] = ptoken(
   },
 ).map(fn { Number(value) => Expression::Number(value) })
 
-
-
 // 定义互递归函数
 // atomic = "(" expression ")" | Value
 // 使用组合子构建的解析器atomic：从左到右解析表达式或数值tokens

@@ -122,6 +122,7 @@ pub fn Fundef::from_json(json : Json) -> Fundef!Error {
 }
 
 pub fn to_json(self : Syntax) -> Json {
+  // 序列化：可以将AST序列化为json，以供存储或传输。
   match self {
     Unit => "Unit"
     Bool(b) => ["Bool", if b { true } else { false }]
@@ -158,6 +159,7 @@ pub fn to_json(self : Syntax) -> Json {
 }
 
 pub fn Syntax::from_json(json : Json) -> Syntax! {
+  // 反序列化，可以将json反序列化为AST，以供进一步的处理。
   match json {
     "Unit" => Syntax::Unit
     ["Bool", true] => Bool(true)
