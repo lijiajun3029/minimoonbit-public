@@ -32,7 +32,7 @@ fn ptoken(predicate : (@lex.Token) -> Bool) -> Parser[@lex.Token] {
   }
 }
 
-// 如果语法解析成功，对解析结果进行转化。
+// 对解析结果进行变换
 fn map[I, O](self : Parser[I], f : (I) -> O) -> Parser[O] {
   fn {
     input =>
@@ -80,7 +80,7 @@ fn many[Value : Show](self : Parser[Value]) -> Parser[Array[Value]] {
     println(input)
     println(self.parse(input))
     loop self.parse(input) {
-      None => Some((cumul, rest))
+      None => break Some((cumul, rest))
       Some((v, rest_)) => {
         println("Many")
         println(rest_)
@@ -173,7 +173,7 @@ fn atomic(tokens : ArrayView[@lex.Token]) -> (@types.Syntax, ArrayView[@lex.Toke
 fn combine(tokens : ArrayView[@lex.Token]) -> (@types.Syntax, ArrayView[@lex.Token])? {
   Parser(atomic)
   .and(
-    mul_div
+    mul_div.map(map_op)
     .and(atomic)
     .many(),
   )
@@ -183,9 +183,14 @@ fn combine(tokens : ArrayView[@lex.Token]) -> (@types.Syntax, ArrayView[@lex.Tok
         println("fold: \{e} \{list}")
         list.fold(
           init=e,
-          fn {
-            e, (@lex.Token::Mul, expr) => @types.Syntax::Prim(e, expr,@types.Op::Mul,kind=None)
-            e, (@lex.Token::Div, expr) => @types.Syntax::Prim(e, expr,@types.Op::Div,kind=None)
+          fn { 
+            e,(Some(op),expr)=>
+                match op{
+                @types.Op::Mul => @types.Syntax::Prim(e, expr,@types.Op::Mul,kind=None)
+                @types.Op::Div => @types.Syntax::Prim(e, expr,@types.Op::Div,kind=None)
+                _ => @util.die("不应该出现在这里")
+                }
+            _,_ => @util.die("不应该出现在这里")
           },
         )
       }
@@ -198,7 +203,7 @@ fn combine(tokens : ArrayView[@lex.Token]) -> (@types.Syntax, ArrayView[@lex.Tok
 fn expression(tokens : ArrayView[@lex.Token]) -> (@types.Syntax, ArrayView[@lex.Token])? {
   Parser(combine)
   .and(
-    add_sub
+    add_sub.map(map_op)
     .and(combine)
     .many(),
   )
@@ -208,8 +213,13 @@ fn expression(tokens : ArrayView[@lex.Token]) -> (@types.Syntax, ArrayView[@lex.
         let result = list.fold(
           init=e,
           fn {
-            e, (Add, expr) => @types.Syntax::Prim(e, expr,@types.Op::Add,kind=None)
-            e, (Sub, expr) => @types.Syntax::Prim(e, expr,@types.Op::Sub,kind=None)
+              e,(Some(op),expr)=>
+                  match op{
+                    @types.Op::Add => @types.Syntax::Prim(e, expr,@types.Op::Add,kind=None)
+                    @types.Op::Sub => @types.Syntax::Prim(e, expr,@types.Op::Sub,kind=None)
+                    _ => @util.die("不应该出现在这里")
+                  }
+              _,_ => @util.die("不应该出现在这里")
           },
         )
         println("fold: \{e} \{list} -> \{result}")
@@ -254,17 +264,133 @@ fn let_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayV
   .parse(tokens)
 }
 
-// 扩展 parser 以支持 let 语句和表达式
-pub fn parse_syntax(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
-  // 优先级等 todo
-  match let_statement(tokens){
-    None=>match expression(tokens){
-      None => None
-      _ as ast => ast
-    }
-    _ as ast => ast
+// if语句解析器
+fn if_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+    ptoken(fn {
+        @lex.Token::If => true
+        _ => false
+    })
+    .and(expression) // 解析条件表达式
+    .and(block)      // 解析 then 分支
+    .and(ptoken(fn {
+        @lex.Token::Else => true
+        _ => false
+    }))
+    .and(block)      // 解析 else 分支
+    .map(fn {
+        ((((_, condition), then_branch), _,),else_branch) => @types.Syntax::If(condition, then_branch, else_branch)
+    })
+    .parse(tokens)
+}
+
+// fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+//     ptoken(fn {
+//         @lex.Token::Fn => true
+//         _ => false
+//     })
+//     .and(ptoken(fn {
+//         @lex.Token::Identifier(_) => true
+//         _ => false
+//     }).map(fn {
+//         @lex.Token::Identifier(name) => name
+//         _ => @util.die("Expected identifier")
+//     }))
+//     .and(
+//         ptoken(fn { @lex.Token::LParen => true _ => false })
+//         .and(
+//             // 解析参数列表，可以是空或一个或多个参数
+//             let param = ptoken(fn { @lex.Token::Identifier(_) => true _ => false })
+//                 .and(ptoken(fn { @lex.Token::Colon => true _ => false }))
+//                 .and(parse_type)
+//                 .map(fn { ((name, _), ty) => (name, ty) })
+
+//             param
+//                 .and(ptoken(fn { @lex.Token::Comma => true _ => false }).or(ptoken(fn { @lex.Token::RParen => true _ => false })))
+//                 .many()
+//                 .map(fn { list => list.map(|(p, _)| p) })
+//         )
+//         .and(ptoken(fn { @lex.Token::RParen => true _ => false }))
+//         .map(fn { (params, _) => params })
+//     )
+//     .and(block) // 解析函数体
+//     .map(fn {
+//         ((name, params), body) => @types.Syntax::Fn(name, params, body)
+//     })
+//     .parse(tokens)
+// }
+
+fn block(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+    ptoken(fn {
+        @lex.Token::LBrace => true
+        _ => false
+    })
+    .and(statements) // 解析多个语句
+    .and(ptoken(fn {
+        @lex.Token::RBrace => true
+        _ => false
+    }))
+    .map(fn { ((_, stmts), _) => stmts })
+    .parse(tokens)
+}
+
+fn statement() -> Parser[@types.Syntax] {
+  fn (tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+      println("statement tokens")
+      println(tokens)
+      let parsers = [
+          let_statement,
+          if_statement,
+          // fn_statement,
+          expression// 表达式也是一种语句
+      ]
+      // todo check
+      let mut ast= None
+      for parser in parsers{
+        ast= parser(tokens)
+        match ast{
+          None => continue
+          _ => break
+        }
+      }
+      // }
+      //   let ast = parsers.fold(init=None, fn {acc, parser=> 
+      //     match parser(tokens){
+      //       None =>None
+      //       _ => parser(tokens)
+      //     }})
+      //   println(ast)
+      //   println("statement")
+      ast
+      // let_statement(tokens)
   }
 }
+fn statements(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+    // 使用 many 来解析零个或多个语句，并将它们组合成一个块
+    statement().many().map(fn { stmts =>
+        // 将多个语句组合成一个序列，可以选择如何表示
+        // 这里假设我们有一个 `Seq` 变体来表示语句序列
+        // @types.Syntax::Seq(stmts)
+        stmts[0]
+    }).parse(tokens)  
+}
+
+// 扩展 parser 以支持 let 语句和表达式
+// pub fn parse_syntax(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+//   // 优先级等 todo
+//   match let_statement(tokens){
+//     None=>match expression(tokens){
+//       None => None
+//       _ as ast => ast
+//     }
+//     _ as ast => ast
+//   }
+// }
+
+pub fn parse_syntax(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+  statements(tokens)
+}
+
+
 
 test {
   // 字符串输入
@@ -318,6 +444,20 @@ test {
   // )
   
   // let语句
+  let tokens = []
+  @lex.lex({ str: "let a:Int=1;2", offset: 0, array: tokens })
+  println(tokens)
+  inspect!(
+    tokens,
+    content="[Let, Identifier(\"a\"), Colon, Int, Assign, Number(1), Semicolon, Number(2)]"
+  )
+  let (expr, _) = parse_syntax(tokens[:]).unwrap()
+  println(expr)
+  inspect!(
+    expr,
+    content="Let((\"a\", Int), Int(1), Int(2))"
+  )
+
   let tokens = []
   @lex.lex({ str: "let a:Int=1;2", offset: 0, array: tokens })
   println(tokens)
