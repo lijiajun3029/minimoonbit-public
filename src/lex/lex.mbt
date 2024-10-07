@@ -87,7 +87,21 @@ pub fn lex(context : Context) -> Unit {
       context.offset += 1
       lex(context)
     }
-    ' ' | '\n' | '\t' | '\r' => {
+    '\n' => {
+      context.array.push(Newline) // 识别 LF(Line Feed) 换行符
+      context.offset += 1
+      lex(context)
+    }
+    '\r' => {
+          // 检查下一个字符是否为 '\n'，如果是，将其作为单一的 Newline 处理
+          context.offset += 1
+          if str[context.offset]=='\n'{
+            context.array.push(Newline) // 识别 LF(Line Feed) 换行符
+            context.offset += 1
+            lex(context)
+          }
+    }
+    ' ' | '\t'  => {
       // 空格等直接忽略
       context.offset += 1
       lex(context)
@@ -152,5 +166,33 @@ test {
     content="[Let, Identifier(\"a\"), Assign, Int, LParen, Number(11), RParen]"
   )
 
+  let array = []
+  lex({ str: "let a=Int(11)\nlet b:Int =1", offset: 0, array })
+  println(array)
+  inspect!(
+    array,
+    content="[Let, Identifier(\"a\"), Assign, Int, LParen, Number(11), RParen, Newline, Let, Identifier(\"b\"), Colon, Int, Assign, Number(1)]"
+  )
+
+  // 多行表达式
+  let input = "1/2-3 \n4*5+6"
+  let tokens = []
+  lex({ str: input, offset: 0, array: tokens })
+  println(tokens)
+  inspect!(
+    tokens,
+    content="[Number(1), Div, Number(2), Sub, Number(3), Newline, Number(4), Mul, Number(5), Add, Number(6)]",
+  )
+  // 多行let todo check type
+  let array = []
+  lex({ str: "let 1=Int(11)\nlet 2:Int =1", offset: 0, array })
+  println(array)
+  inspect!(
+    array,
+    content="[Let, Number(1), Assign, Int, LParen, Number(11), RParen, Newline, Let, Number(2), Colon, Int, Assign, Number(1)]"
+  )
+
   println("TODO lex")
+  println("------------")
+  println("------------")
 }

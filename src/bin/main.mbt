@@ -104,6 +104,7 @@ fn CompileStatus::step(self : CompileStatus) -> Bool{
       // self.ast = expr
       // let parsed = @util.die("TODO: parse")
       self.ast =Some(parsed)
+      // self.ast=[parsed]  // 可不可以返回一个Array[Syntax],如何返回一个Syntax
       println(self.ast)
       println("end parse")
     }

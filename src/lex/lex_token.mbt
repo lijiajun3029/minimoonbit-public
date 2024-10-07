@@ -64,7 +64,8 @@ pub enum Token {
 
   // 其他
   Arrow // ->
-  Comment // 注释//
+  Comment // 注释
+  Newline // \n on linux or mac, \r\n on windows
   // WS // [ \t\r\n]+ -> skip
   // 等等
   
