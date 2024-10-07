@@ -302,36 +302,72 @@ fn if_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
 
 // fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
 //     ptoken(fn {
-//         @lex.Token::Fn => true
+//         Fn => true
 //         _ => false
 //     })
-//     .and(ptoken(fn {
-//         @lex.Token::Identifier(_) => true
-//         _ => false
-//     }).map(fn {
-//         @lex.Token::Identifier(name) => name
-//         _ => @util.die("Expected identifier")
-//     }))
 //     .and(
-//         ptoken(fn { @lex.Token::LParen => true _ => false })
+//       ptoken(fn {
+//         Identifier(_) => true
+//         _ => false
+//       }).map(fn {
+//         Identifier(fun_name) => fun_name
+//       })
+//     )
+//     // .or()  // 函数类型todo
+//     .and(
+//         ptoken(fn { LParen => true; _ => false })
 //         .and(
 //             // 解析参数列表，可以是空或一个或多个参数
-//             let param = ptoken(fn { @lex.Token::Identifier(_) => true _ => false })
-//                 .and(ptoken(fn { @lex.Token::Colon => true _ => false }))
-//                 .and(parse_type)
-//                 .map(fn { ((name, _), ty) => (name, ty) })
-
-//             param
-//                 .and(ptoken(fn { @lex.Token::Comma => true _ => false }).or(ptoken(fn { @lex.Token::RParen => true _ => false })))
-//                 .many()
-//                 .map(fn { list => list.map(|(p, _)| p) })
+//             ptoken(fn { 
+//                 Identifier(_) => true
+//                 _ => false 
+//             }).map(fn {
+//                 Identifier(arg_name) => arg_name
+//             })
+//             .and(ptoken(fn { Colon => true;_ => false }))
+//             .and(parse_type)
+//             .map(fn { ((arg_name, _), arg_type) => (arg_name,arg_type) })   // 参数类型
+//             .and(
+//                 ptoken(fn {
+//                     Comma => true
+//                     _ => false 
+//                 })
+//                 .or(ptoken(fn { 
+//                     RParen => true
+//                     _ => false 
+//                 }))
+//             )
+//             // .map(fn { (param, _) => param })
+//             .many()
 //         )
-//         .and(ptoken(fn { @lex.Token::RParen => true _ => false }))
-//         .map(fn { (params, _) => params })
+//         .and(ptoken(fn { RParen => true ;_ => false }))
+//         .map(
+//           fn {
+//               ((e, list),_) => {
+//                 let result = list.fold(
+//                   init=e,
+//                   fn {
+//                       e,(Some(op),expr)=>
+//                           match op{
+//                             @types.Op::Add => @types.Syntax::Prim(e, expr,@types.Op::Add,kind=None)
+//                             @types.Op::Sub => @types.Syntax::Prim(e, expr,@types.Op::Sub,kind=None)
+//                             _ => @util.die("不应该出现在这里")
+//                           }
+//                       _,_ => @util.die("不应该出现在这里")
+//                   },
+//                 )
+//                 println("expression fold: \{e} \{list} -> \{result}")
+//                 result
+//               }
+//           },
+//         )
 //     )
 //     .and(block) // 解析函数体
 //     .map(fn {
-//         ((name, params), body) => @types.Syntax::Fn(name, params, body)
+//         ((name_, params), body) => {
+//           let fundef :@types.Fundef={name:(fun_name,@types.Type::Unit), args:params, body:body}
+//           @types.Syntax::LetRec(fundef, @types.Syntax::Unit)
+//         }
 //     })
 //     .parse(tokens)
 // }
