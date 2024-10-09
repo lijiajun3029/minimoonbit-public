@@ -21,3 +21,6 @@ git archive -o submit.zip HEAD
 # 解析
 moon run src/bin/main.mbt -- --end-stage parse test/test_simple_src/expression.mbt
 moon run src/bin/main.mbt -- --end-stage parse test/test_src/ack.mbt
+
+# todo
+moon run src/bin/main.mbt -- --end-stage parse test/test_simple_src/if_else.mbt 

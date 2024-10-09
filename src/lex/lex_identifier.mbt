@@ -32,7 +32,11 @@ fn lex_identifier(context: Context) -> Unit {
     "Int" => context.array.push(Int)
     "Double" => context.array.push(Double)
     "Array" => context.array.push(Array)
-    "main" => context.array.push(Main)
+    "main" => {
+      context.array.push(Main)  // 自定义关键词,添加()方便解析。
+      context.array.push(LParen)  
+      context.array.push(RParen)
+    }
     "not" => context.array.push(Not)
 
     // 标识符
