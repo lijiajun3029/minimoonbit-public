@@ -75,22 +75,38 @@ fn or[Value](self : Parser[Value], parser2 : Parser[Value]) -> Parser[Value] {
 // 重复解析：0次或多次，直到失败为止。
 fn many[Value : Show](self : Parser[Value]) -> Parser[Array[Value]] {
   fn(input) {
-    let cumul = []
-    let mut rest = input
     println("Many 1")
     println("input: \{input}")
     println("self.parse(input): \{self.parse(input)}")
-    loop self.parse(input) {
-      None => break Some((cumul, rest))
-      Some((v, rest_)) => {
-        println("Many 2")
-        println("rest_: \{rest_}")
-        println("self.parse(rest_): \{self.parse(rest_)}")
-        cumul.push(v)
-        rest = rest_
-        continue self.parse(rest_)
+    let cumul = []
+    let mut rest = input
+    
+    // 方法1
+    while true{
+      match self.parse(rest){
+        None => break 
+        Some((v, rest_)) => {
+          cumul.push(v)
+          rest=rest_
+        }
       }
     }
+    Some((cumul, rest))
+
+    // 方法2
+    // loop self.parse(rest) {
+    //   None => break Some((cumul, rest))
+    //   Some((v, rest_)) => {
+    //     println("Many 2")
+    //     println("value: \{v}")
+    //     println("rest_: \{rest_}")
+    //     println("self.parse(rest_): \{self.parse(rest_)}")
+    //     cumul.push(v)
+    //     rest = rest_
+    //     continue self.parse(rest) // to drop
+    //   }
+    // }
+
   }
 }
 
@@ -134,11 +150,11 @@ let separator : Parser[@lex.Token] = ptoken(
     },
 )
 
-let pure : Parser[@lex.Token] = ptoken(
-    fn {
-      _ => true
-    },
-)
+// let pure : Parser[@lex.Token] = ptoken(
+//     fn {
+//       _ => true
+//     },
+// )
 
 let number : Parser[@types.Syntax] = ptoken(
   fn {
@@ -149,6 +165,18 @@ let number : Parser[@types.Syntax] = ptoken(
   Number(value) => @types.Syntax::Int(value)
   _ => @util.die("")
   })
+
+let boolean : Parser[@types.Syntax] = ptoken(
+    fn {
+        @lex.Token::True | @lex.Token::False => true
+        _ => false
+    },
+).map(fn {
+    @lex.Token::True => @types.Syntax::Bool(true)
+    @lex.Token::False => @types.Syntax::Bool(false)
+    _ => @util.die("Unexpected token in boolean parser")
+})
+
 
 let parse_type : Parser[@types.Type] = ptoken(
   fn {
@@ -181,6 +209,7 @@ fn atomic(tokens : ArrayView[@lex.Token]) -> (@types.Syntax, ArrayView[@lex.Toke
   .and(rparen)
   .map(fn { ((_, expr), _) => expr })   // 忽略括号
   .or(number)
+  .or(boolean)
   .parse(tokens)
 }
 
@@ -287,7 +316,7 @@ fn if_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
         _ => false
     })
     .and(expression) // 解析条件表达式
-    // .and(statements) // 解析条件表达式
+    // .and(statements) // 解析多语句
     .and(block)      // 解析 then 分支
     .and(ptoken(fn {
         @lex.Token::Else => true
@@ -300,89 +329,98 @@ fn if_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
     .parse(tokens)
 }
 
-// fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
-//     ptoken(fn {
-//         Fn => true
-//         _ => false
-//     })
-//     .and(
-//       ptoken(fn {
-//         Identifier(_) => true
-//         _ => false
-//       }).map(fn {
-//         Identifier(fun_name) => fun_name
-//       })
-//     )
-//     // .or()  // 函数类型todo
-//     .and(
-//         ptoken(fn { LParen => true; _ => false })
-//         .and(
-//             // 解析参数列表，可以是空或一个或多个参数
-//             ptoken(fn { 
-//                 Identifier(_) => true
-//                 _ => false 
-//             }).map(fn {
-//                 Identifier(arg_name) => arg_name
-//             })
-//             .and(ptoken(fn { Colon => true;_ => false }))
-//             .and(parse_type)
-//             .map(fn { ((arg_name, _), arg_type) => (arg_name,arg_type) })   // 参数类型
-//             .and(
-//                 ptoken(fn {
-//                     Comma => true
-//                     _ => false 
-//                 })
-//                 .or(ptoken(fn { 
-//                     RParen => true
-//                     _ => false 
-//                 }))
-//             )
-//             // .map(fn { (param, _) => param })
-//             .many()
-//         )
-//         .and(ptoken(fn { RParen => true ;_ => false }))
-//         .map(
-//           fn {
-//               ((e, list),_) => {
-//                 let result = list.fold(
-//                   init=e,
-//                   fn {
-//                       e,(Some(op),expr)=>
-//                           match op{
-//                             @types.Op::Add => @types.Syntax::Prim(e, expr,@types.Op::Add,kind=None)
-//                             @types.Op::Sub => @types.Syntax::Prim(e, expr,@types.Op::Sub,kind=None)
-//                             _ => @util.die("不应该出现在这里")
-//                           }
-//                       _,_ => @util.die("不应该出现在这里")
-//                   },
-//                 )
-//                 println("expression fold: \{e} \{list} -> \{result}")
-//                 result
-//               }
-//           },
-//         )
-//     )
-//     .and(block) // 解析函数体
-//     .map(fn {
-//         ((name_, params), body) => {
-//           let fundef :@types.Fundef={name:(fun_name,@types.Type::Unit), args:params, body:body}
-//           @types.Syntax::LetRec(fundef, @types.Syntax::Unit)
-//         }
-//     })
-//     .parse(tokens)
-// }
+fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+    ptoken(fn {
+        Fn => true
+        _ => false
+    })
+    .and(
+      ptoken(fn {
+        Identifier(_) => true
+        _ => false
+      }).map(fn {
+        Identifier(fun_name) => fun_name  // 中间解析结果
+      })
+    )
+    // .or()  // 函数类型todo
+    .and(
+        ptoken(fn { LParen => true; _ => false })
+        .and(
+            // 解析参数列表，可以是空或一个或多个参数
+            ptoken(fn { 
+                Identifier(_) => true
+                _ => false 
+            }).map(fn {
+                Identifier(arg_name) => arg_name
+            })
+            .and(ptoken(fn { Colon => true;_ => false }))
+            .and(parse_type)
+            .map(fn { ((arg_name, _), arg_type) => (arg_name,arg_type) })   // 参数类型,中间解析结果
+            .and(
+                ptoken(fn {
+                    Comma => true
+                    _ => false 
+                })
+                .or(ptoken(fn { 
+                    RParen => true
+                    _ => false 
+                }))
+            )
+            // .map(fn { (param, _) => param })
+            .many()
+        )
+        .and(ptoken(fn { RParen => true ;_ => false }))
+        // .map(
+        //   fn {
+        //       ((e, list),_) => {
+        //         let params=[]
+        //         let result = list.fold(
+        //           init=e,
+        //           fn {
+        //               e,((arg_name,arg_type),_)=>{
+        //                 params.push(arg_name)
+        //                 e // 满足类型
+        //               }
+        //               _,_ => @util.die("不应该出现在这里")
+        //           },
+        //         )
+        //         println("expression fold: \{e} \{list} -> \{result}")
+        //         result
+        //       }
+        //   },
+        // )
+    )
+    .and(block) // 解析函数体
+    .map(fn {
+        (((_,fun_name), ((_,array_params),_)), body) => {
+          let params=[]
+          for param in array_params{
+            params.push(param.0)
+          }
+          let fundef :@types.Fundef={name:(fun_name,@types.Type::Unit), args:params, body:body}
+          @types.Syntax::LetRec(fundef, @types.Syntax::Unit)
+        }
+    })
+    .parse(tokens)
+}
 
 fn block(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
     ptoken(fn {
         @lex.Token::LBrace => true
         _ => false
     })
+    // .and(expression)
+    // .and(statement()) // 解析单个语句
     .and(statements) // 解析多个语句
+    // .or(separator)
     .and(ptoken(fn {
         @lex.Token::RBrace => true
         _ => false
     }))
-    .map(fn { ((_, stmts), _) => stmts })
+    .map(fn { ((_, stmts), rbrace) => {
+      println("消耗了： \{rbrace}")
+      stmts
+    } })
     .parse(tokens)
 }
 
@@ -395,16 +433,23 @@ fn statement() -> Parser[@types.Syntax] {
         let parsers = [
             let_statement,
             if_statement,
-            // fn_statement,
-            expression  // 表达式也是一种语句
+            fn_statement,
+            expression,  // 表达式也是一种语句
         ]
         // todo check
         for parser in parsers{
           ast= parser(tokens)
+          println("statement tokens: \{tokens}")
+          println("ast: \{ast}")
           match ast{
-            None => continue
+            None => println("none")
             _ => break
           }
+
+          // if ast{  //  error
+          //   break
+          // }
+          
         }
       }
       ast
@@ -438,8 +483,9 @@ fn statement() -> Parser[@types.Syntax] {
 // }    
 
 fn statements(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+  // println("22")
     statement().and(
-      separator.and(statement()).many()
+      separator.and(statement()).many() // 0次或多次
       // statements
       ).map(
         // fn { [(stmts,_)]=>
@@ -449,6 +495,7 @@ fn statements(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView
       (first_stmt, list) => {
         let stmts=[]
         stmts.push(first_stmt)
+        println("33")
         let result = list.fold(
           init=first_stmt,
           fn {
@@ -467,7 +514,7 @@ fn statements(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView
         }
         )
         .parse(tokens)  
-}    
+}
 
 // fn statements(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
 //     statement()
@@ -609,5 +656,6 @@ test {
   println(expr)
   inspect!(expr, content="Seq([Let((\"a\", Int), Int(1), Unit), Let((\"b\", Int), Int(1), Unit)])")
 
-  // if
+  // if in file
+  // fn in file
 }

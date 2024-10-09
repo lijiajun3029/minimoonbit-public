@@ -70,11 +70,37 @@ pub fn lex(context : Context) -> Unit {
     '{' => {
       context.array.push(LBrace)
       context.offset += 1
+      
+      while context.offset< str.length() {
+          if str[context.offset]=='\n'{
+            context.offset += 1
+          }else if str[context.offset]=='\r'{
+            if str[context.offset+1]=='\n'{
+              context.offset += 2
+            }
+          }else{
+            break
+          }
+      }
       lex(context)
     }
     '}' => {
       context.array.push(RBrace)
       context.offset += 1
+
+      while context.offset< str.length() { 
+          if str[context.offset]=='\n'{
+            context.offset += 1
+          }else if str[context.offset]=='\r'{
+            if str[context.offset+1]=='\n'{
+              context.offset += 2
+            }
+          }else{
+            break
+          }
+      }
+
+  
       lex(context)
     }
     '[' => {
@@ -88,15 +114,15 @@ pub fn lex(context : Context) -> Unit {
       lex(context)
     }
     '\n' => {
-      context.array.push(Newline) // 识别 LF(Line Feed) 换行符
+      context.array.push(Newline) // 识别为LF(Line Feed) 换行符（linux or mac os）
       context.offset += 1
       lex(context)
     }
     '\r' => {
-          // 检查下一个字符是否为 '\n'，如果是，将其作为单一的 Newline 处理
+          // 检查下一个字符是否为 '\n'，如果是，将其作为单一的 Newline 处理（windows）
           context.offset += 1
           if str[context.offset]=='\n'{
-            context.array.push(Newline) // 识别 LF(Line Feed) 换行符
+            context.array.push(Newline) // 识别为LF(Line Feed) 换行符
             context.offset += 1
             lex(context)
           }
@@ -114,6 +140,17 @@ pub fn lex(context : Context) -> Unit {
     ';' => {
       context.array.push(Semicolon)
       context.offset += 1
+      while context.offset< str.length() { 
+          if str[context.offset]=='\n'{
+            context.offset += 1
+          }else if str[context.offset]=='\r'{
+            if str[context.offset+1]=='\n'{
+              context.offset += 2
+            }
+          }else{
+            break
+          }
+      }
       lex(context)
     }
     ':' => {
