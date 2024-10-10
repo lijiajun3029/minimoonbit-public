@@ -1,2 +1,3 @@
 fn main {
-  let a=1  }
+  let a:Int=1;
+}
