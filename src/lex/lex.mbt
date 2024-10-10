@@ -33,13 +33,22 @@ pub fn lex(context : Context) -> Unit {
       lex(context)
     }
     '/' => {
-      // todo // (\r\n)
-      array.push(Div)
+      // todo // end (\n)(\r\n)
       context.offset += 1
+      if context.offset<str.length(){
+        if str[context.offset]=='/'{
+          context.offset += 1
+          array.push(Comment)
+        }else{
+          array.push(Div)
+        }
+      }else{
+        array.push(Div)
+      }
       lex(context)
     }
     '=' => {
-      // todo ==
+      // todo ==, =>
       array.push(Assign)
       context.offset += 1
       lex(context)
