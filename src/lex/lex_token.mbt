@@ -70,3 +70,15 @@ pub enum Token {
   // 等等
   
 } derive(Show)
+
+
+// todo support debug etc.
+pub struct Position{
+  line:Int    // 行号
+  columb:Int  // 列号
+}
+
+pub struct Token_with_Position{
+  token:Token
+  position:Position
+}
