@@ -32,4 +32,4 @@ moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/_neg_iden
 moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/_neg_ident2.mbt  // AC
 
 moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/global_let.mbt // fake AC
-moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/arith.mbt // RE
+moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/arith.mbt // fake AC
