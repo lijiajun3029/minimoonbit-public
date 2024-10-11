@@ -1,1 +1,9 @@
-{}
+{
+  "import": [
+      "moonbitlang/minimbt/util",
+      {
+          "path": "moonbitlang/minimbt",
+          "alias": "types"
+      },
+  ]
+}

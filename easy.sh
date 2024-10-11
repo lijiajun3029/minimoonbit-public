@@ -26,5 +26,7 @@ moon run src/bin/main.mbt -- --end-stage parse test/test_simple_src/expression.m
 moon run src/bin/main.mbt -- --end-stage parse test/test_simple_src/if_else.mbt
 
 # test cases
-moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/ident.mbt  // local AC
-moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/numbers.mbt  // local AC
+moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/ident.mbt  // AC
+moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/numbers.mbt  // AC
+moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/_neg_ident.mbt  // AC
+moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/_neg_ident2.mbt  // AC

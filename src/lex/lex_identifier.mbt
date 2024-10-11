@@ -14,6 +14,9 @@ fn is_alphanumeric(ch: Char) -> Bool {
 // 匹配关键词和标识符
 fn lex_identifier(context: Context) -> Unit {
   let start = context.offset
+  if context.str[start]=='_'{
+    @util.die("非法标识符'_'")
+  }
   while context.offset < context.str.length() && is_alphanumeric(context.str[context.offset]) {
     context.offset += 1
   }
