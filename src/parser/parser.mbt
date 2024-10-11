@@ -237,6 +237,28 @@ let number : Parser[@types.Syntax] = ptoken(
   _ => @util.die("")
   })
 
+let add_sub_number : Parser[@types.Syntax] = add_sub.and(ptoken(
+  fn {
+    @lex.Token::Number(_) => true
+    @lex.Token::Number_Double(_) => true
+    _ => false
+  },
+)).map(fn {
+  (Add,Number(value)) => {
+    @types.Syntax::Neg(@types.Syntax::Int(value),kind=Some(@types.Kind::Int))
+  }
+  (Sub,Number(value)) => {
+    @types.Syntax::Neg(@types.Syntax::Int(value),kind=Some(@types.Kind::Int))
+  }
+  (Add,Number_Double(value)) => {
+    @types.Syntax::Neg(@types.Syntax::Double(value),kind=Some(@types.Kind::Double))
+  }
+  (Sub,Number_Double(value)) => {
+    @types.Syntax::Neg(@types.Syntax::Double(value),kind=Some(@types.Kind::Double))
+  }
+  _ => @util.die("")
+  })
+
 let boolean : Parser[@types.Syntax] = ptoken(
     fn {
         @lex.Token::True | @lex.Token::False => true
@@ -246,6 +268,26 @@ let boolean : Parser[@types.Syntax] = ptoken(
     @lex.Token::True => @types.Syntax::Bool(true)
     @lex.Token::False => @types.Syntax::Bool(false)
     _ => @util.die("Unexpected token in boolean parser")
+})
+
+let var : Parser[@types.Syntax] =ptoken(fn { // 变量
+    Identifier(_) => true
+    _ => false
+  }).map(fn {
+    @lex.Token::Identifier(name) => @types.Syntax::Var(name)
+    })
+
+let add_sub_var : Parser[@types.Syntax] = add_sub.and(ptoken(fn { // 变量
+    Identifier(_) => true
+    _ => false
+  })).map(fn {
+    (Add,Identifier(name)) => {
+      @types.Syntax::Neg(@types.Syntax::Var(name),kind=Some(@types.Kind::Int))
+    }
+    (Sub,Identifier(name)) => {
+      @types.Syntax::Neg(@types.Syntax::Var(name),kind=Some(@types.Kind::Int))
+    }
+    _ => @util.die("add_sub_var错误")
 })
 
 let parse_type : Parser[@types.Type] = ptoken(
@@ -279,13 +321,10 @@ fn atomic(tokens : ArrayView[@lex.Token]) -> (@types.Syntax, ArrayView[@lex.Toke
   .and(rparen)
   .map(fn { ((_, expr), _) => expr })   // 忽略括号
   .or(number)
+  .or(add_sub_number)
   .or(boolean)
-  .or(ptoken(fn { // 变量
-    Identifier(_) => true
-    _ => false
-  }).map(fn {
-    @lex.Token::Identifier(name) => @types.Syntax::Var(name)
-    }))
+  .or(var)
+  .or(add_sub_var)
   .parse(tokens)
 }
 
@@ -486,13 +525,24 @@ fn call_fn_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
         Fun_name(fun_name) => fun_name  // 中间解析,可以简化最终解析
       })
     .and(lparen)
-    .and(     ptoken(fn { 
-                Identifier(_) => true
+    .and(ptoken(fn { 
+          Identifier(_) => true
                 _ => false 
-            }).map(fn {
-                Identifier(arg_name) => arg_name
-            }).and(comma).many()
-            )
+          }).map(fn {
+              Identifier(arg_name) => arg_name
+          })
+          .and(
+            comma.or(
+              ptoken(fn { 
+                Identifier(_) => true
+                      _ => false 
+                })).map(fn {
+                    Identifier(arg_name) => arg_name
+                })
+            .many()
+          )
+          // .and(comma).many()
+        )
     .and(rparen)
     .map(fn {  _ => {
       println("test")
@@ -510,8 +560,6 @@ fn lparen_rparen_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, A
     }})
     .parse(tokens)
 }
-
-
 
 fn block(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
     lbrace

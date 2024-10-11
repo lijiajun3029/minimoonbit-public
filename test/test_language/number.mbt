@@ -8,5 +8,7 @@ fn main {
   println(01)
   println(4*2)
   println(4--4) // 8
+  let a=1
+  println(1+ -a)
   // println(0 1)
 }
