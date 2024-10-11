@@ -37,8 +37,22 @@ pub fn lex(context : Context) -> Unit {
       context.offset += 1
       if context.offset<str.length(){
         if str[context.offset]=='/'{
-          context.offset += 1
-          array.push(Comment)
+          // context.offset += 1
+          // array.push(Comment)
+          while context.offset< str.length() {
+              if str[context.offset]=='\n'{
+                context.offset += 1
+                break
+              }else if str[context.offset]=='\r'{
+                if str[context.offset+1]=='\n'{
+                  context.offset += 2
+                  break
+                }
+              }else{
+                context.offset += 1
+                continue
+              }
+          }
         }else{
           array.push(Div)
         }

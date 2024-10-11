@@ -1,3 +1,4 @@
+// 暂未使用
 pub fn to_json(self : Type) -> Json {
   match self {
     Unit => "Unit"
@@ -40,6 +41,7 @@ pub fn Type::from_json(self : Json) -> Type!Error {
 }
 
 test {
+  // Type序列化和反序列化
   inspect!(Type::from_json?(Type::Unit.to_json()), content="Ok(Unit)")
   inspect!(Type::from_json?(Type::Bool.to_json()), content="Ok(Bool)")
   inspect!(Type::from_json?(Type::Int.to_json()), content="Ok(Int)")
@@ -333,6 +335,7 @@ pub fn Syntax::from_json(json : Json) -> Syntax! {
 }
 
 test {
+  // 语法序列化和反序列化
   inspect!(
     Syntax::App(Syntax::Var("f"), []).to_json().stringify(),
     content=

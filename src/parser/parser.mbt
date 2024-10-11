@@ -223,10 +223,12 @@ let assign : Parser[@lex.Token] = ptoken(fn {
 let number : Parser[@types.Syntax] = ptoken(
   fn {
     @lex.Token::Number(_) => true
+    @lex.Token::Number_Double(_) => true
     _ => false
   },
 ).map(fn {
   Number(value) => @types.Syntax::Int(value)
+  Number_Double(value) => @types.Syntax::Double(value)
   _ => @util.die("")
   })
 
@@ -240,7 +242,6 @@ let boolean : Parser[@types.Syntax] = ptoken(
     @lex.Token::False => @types.Syntax::Bool(false)
     _ => @util.die("Unexpected token in boolean parser")
 })
-
 
 let parse_type : Parser[@types.Type] = ptoken(
   fn {
@@ -274,6 +275,12 @@ fn atomic(tokens : ArrayView[@lex.Token]) -> (@types.Syntax, ArrayView[@lex.Toke
   .map(fn { ((_, expr), _) => expr })   // 忽略括号
   .or(number)
   .or(boolean)
+  .or(ptoken(fn { // 变量
+    Identifier(_) => true
+    _ => false
+  }).map(fn {
+    @lex.Token::Identifier(name) => @types.Syntax::Var(name)
+    }))
   .parse(tokens)
 }
 
@@ -467,12 +474,21 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
     .parse(tokens)
 }
 
+fn lparen_rparen_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+    lparen
+    .and(rparen)
+    .map(fn {  _ => {
+      @types.Syntax::Unit
+    }})
+    .parse(tokens)
+}
+
 fn block(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
     lbrace
     // lbrace.many().map(fn {_ => None})
     // .and(expression)
-    .and(statement()) // 解析单个语句
-    // .and(statements) // 解析多个语句
+    // .and(statement()) // 解析单个语句
+    .and(statements) // 解析多个语句
     .and(separator.many())
     .and(rbrace)
     .map(fn { (((_, stmts), _,),rbrace) => {
@@ -482,6 +498,7 @@ fn block(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex
     }})
     .parse(tokens)
 }
+
 
 // fn brace_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
 //     rbrace
@@ -503,6 +520,7 @@ fn statement() -> Parser[@types.Syntax] {
             let_statement,
             if_statement,
             expression,  // 表达式也是一种语句
+            lparen_rparen_stmt,
             // lbrace,  // 单独解析}
         ]
         // todo spilt tokens

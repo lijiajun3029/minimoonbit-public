@@ -5,8 +5,13 @@
 // 1、暂时保留所有token，等待删除部分token
 // 2、minimoonbit中token部分命名和moonbit关键词相同
 pub enum Token {
+  // 数据
   Number(Int) //  整数
-  Identifier(String)  // 标识符
+  Number_Double(Double) //  浮点数
+
+  // 标识符 对应语法中Var(String)
+  Identifier(String)  // 变量名
+  Fun_name(String)  // 函数名
 
   // 声明类型or调用函数
   Unit  // Unit
