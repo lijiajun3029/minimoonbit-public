@@ -209,6 +209,11 @@ let colon  : Parser[@lex.Token] = ptoken(fn {
     _ => false
 })
 
+let comma  : Parser[@lex.Token] = ptoken(fn {
+    Comma => true
+    _ => false
+})
+
 let assign : Parser[@lex.Token] = ptoken(fn {
     Assign => true
     _ => false
@@ -440,10 +445,7 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
             .and(parse_type)
             .map(fn { ((arg_name, _), arg_type) => (arg_name,arg_type) })   // 参数类型,中间解析,可以简化最终解析
             .and(
-                ptoken(fn {
-                    Comma => true
-                    _ => false 
-                })
+                comma
                 // .or(ptoken(fn { 
                 //     RParen => true
                 //     _ => false 
@@ -474,6 +476,32 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
     .parse(tokens)
 }
 
+// 
+fn call_fn_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+    ptoken(
+        fn {
+        Fun_name(_) => true
+        _ => false
+      }).map(fn {
+        Fun_name(fun_name) => fun_name  // 中间解析,可以简化最终解析
+      })
+    .and(lparen)
+    .and(     ptoken(fn { 
+                Identifier(_) => true
+                _ => false 
+            }).map(fn {
+                Identifier(arg_name) => arg_name
+            }).and(comma).many()
+            )
+    .and(rparen)
+    .map(fn {  _ => {
+      println("test")
+      @types.Syntax::Unit
+    }})
+    .parse(tokens)
+}
+
+// ()
 fn lparen_rparen_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
     lparen
     .and(rparen)
@@ -482,6 +510,8 @@ fn lparen_rparen_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, A
     }})
     .parse(tokens)
 }
+
+
 
 fn block(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
     lbrace
@@ -521,6 +551,7 @@ fn statement() -> Parser[@types.Syntax] {
             if_statement,
             expression,  // 表达式也是一种语句
             lparen_rparen_stmt,
+            call_fn_stmt,
             // lbrace,  // 单独解析}
         ]
         // todo spilt tokens
