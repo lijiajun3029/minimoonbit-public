@@ -31,8 +31,8 @@ fn lex_number_rest(context : Context, number : String,context_of_number:ContextO
     return
   }
   let ch = str[offset]
-  println(ch)
-  println(str)
+  // println(ch)
+  // println(str)
   if is_number(ch) {
     context.offset += 1
     lex_number_rest(context, number + ch.to_string(), context_of_number)
