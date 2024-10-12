@@ -13,4 +13,5 @@ pub struct ParserContext {
     // is_async: Bool // 是否为异步上下文
     // is_generator: Bool // 是否为生成器上下文
     mut token_length: Int
+    mut is_main: Bool
 }

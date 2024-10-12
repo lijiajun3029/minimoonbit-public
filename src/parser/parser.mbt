@@ -1,7 +1,7 @@
 // 语法解析
 
-
-let parser_context:ParserContext={is_top_level:true, token_length:0}
+// pub let parser_context:ParserContext={is_top_level:true, token_length:0, is_main:false} // is_main初始化为false，在fn语句中出现问题！
+pub let parser_context:ParserContext={is_top_level:true, token_length:0, is_main:true}
 // 解析操作符并映射到 Op 枚举
 fn map_op(token: @lex.Token) -> Option[@types.Op] {
   match token {
@@ -313,7 +313,6 @@ fn if_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
 }
 
 fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
-    let mut main_flag=false
     ptoken(
       fn {
         Fn => {
@@ -338,14 +337,18 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
     .and(
       ptoken(
         fn {
-        Fun_name(_) => true
+        Fun_name(_) => {
+          parser_context.is_main=false
+          true
+        }
         _ => false
       })
       .or(
         ptoken(
         fn {
           Main =>{
-            main_flag=true
+            println("main function")
+            parser_context.is_main=true
             true
           }
           _ => false
@@ -357,9 +360,11 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
       })
     )
     .and(
-        (if main_flag{
+        (if parser_context.is_main{
+          println("main skip lparen")
           lparen_skip
         }else{
+          println("function lparen")
           lparen
         })
         .and(
@@ -368,7 +373,10 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
                 Identifier(_) => true
                 _ => false 
             }).map(fn {
-                Identifier(arg_name) => arg_name
+                Identifier(arg_name) =>{
+                   println("test order")
+                   arg_name
+                   }
             })
             .and(colon)
             .and(parse_type)
@@ -381,9 +389,16 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
             .many()
         )
         .and(
-          (if main_flag{
+          (if parser_context.is_main{
+            println("main rparen skip")
             rparen_skip
           }else{
+            println("function rparen")
+            println("function rparen")
+            println("function rparen")
+            println("function rparen")
+            println("function rparen")
+            println("function rparen")
             rparen
           })
         )
