@@ -1,7 +1,7 @@
 // 语法解析
 
 
-let parser_context:ParserContext={is_top_level:false, token_length:0}
+let parser_context:ParserContext={is_top_level:true, token_length:0}
 // 解析操作符并映射到 Op 枚举
 fn map_op(token: @lex.Token) -> Option[@types.Op] {
   match token {
@@ -317,10 +317,16 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
       fn {
         Fn => {
           let curent_token_number=parser_context.token_length-tokens.length()
-          println("curent_token_number: \{curent_token_number}")
+          println("FN curent_token_number: \{curent_token_number}")
           let {token_number,line,column_start,column_end}:@lex.TokenPosition = @lex.token_postion_array[curent_token_number]
+          println("FN column_start: \{column_start}")
           if parser_context.is_top_level{
-            column_start==1
+            if column_start==1{
+              true
+            }else{
+              println("顶级未左对齐")
+              false
+            }
           }else{
             true
           }
@@ -449,6 +455,7 @@ fn lparen_rparen_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, A
 // }
 
 fn block(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+    parser_context.is_top_level=false
     lbrace
     // lbrace.many().map(fn {_ => None})
     // .and(expression)
@@ -459,6 +466,7 @@ fn block(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex
     .map(fn { (((_, stmts), _,),rbrace) => {
       println("消耗了： \{rbrace}")
       println("block内语法是 \{stmts}")
+      parser_context.is_top_level=true
       stmts
     }})
     .parse(tokens)
