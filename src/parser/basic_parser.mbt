@@ -87,6 +87,13 @@ let separator : Parser[@lex.Token] = ptoken(
     },
 )
 
+let separator_skip : Parser[@lex.Token] = ptoken_skip(
+    fn {
+      Semicolon | Newline => true
+      _ => false
+    },
+)
+
 let colon  : Parser[@lex.Token] = ptoken(fn {
     Colon => true
     _ => false

@@ -508,7 +508,8 @@ fn statement() -> Parser[@types.Syntax] {
 
 fn statements(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
     statement().and(
-      separator.and(statement()).many() // 0次或多次
+      separator_skip.and(statement()).many()
+      // separator.and(statement()).many() // 0次或多次
       // statements
       ).map(
         fn {
