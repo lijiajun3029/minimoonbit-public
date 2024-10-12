@@ -53,6 +53,23 @@ fn ptoken_skip(predicate : (@lex.Token) -> Bool) -> Parser[@lex.Token] {
 }
 // ptoken_skip2
 
+fn ptoken_not(predicate : (@lex.Token) -> Bool) -> Parser[@lex.Token] {
+  // 直接返回一个函数作为Parser[@lex.Token];跳过失败，并不消耗token
+  fn {  // 省略参数
+    [hd, .. as tl] as all=> {
+      if predicate(hd) {
+        None
+      } else {
+        // println("ptoken_skip \{all}")
+        // None
+        Some((hd,all))
+        // Some((@lex.Token::Arrow,tl))
+      }
+    }
+    [] => None
+  }
+}
+
 // 对解析结果进行变换
 fn map[I, O](self : Parser[I], f : (I) -> O) -> Parser[O] {
   fn {
@@ -361,10 +378,8 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
     )
     .and(
         (if parser_context.is_main{
-          println("main skip lparen")
-          lparen_skip
+          lparen_not
         }else{
-          println("function lparen")
           lparen
         })
         .and(
@@ -390,15 +405,8 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
         )
         .and(
           (if parser_context.is_main{
-            println("main rparen skip")
-            rparen_skip
+            rparen_not
           }else{
-            println("function rparen")
-            println("function rparen")
-            println("function rparen")
-            println("function rparen")
-            println("function rparen")
-            println("function rparen")
             rparen
           })
         )

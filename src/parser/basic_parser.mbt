@@ -27,6 +27,20 @@ let rparen_skip : Parser[@lex.Token] = ptoken_skip(
   },
 )
 
+let lparen_not : Parser[@lex.Token] = ptoken_not(
+  fn {
+    LParen => true
+    _ => false
+  },
+)
+
+let rparen_not : Parser[@lex.Token] = ptoken_not(
+  fn {
+    RParen => true
+    _ => false
+  },
+)
+
 let lbrace : Parser[@lex.Token] = ptoken(
   fn {
     LBrace => true
