@@ -11,7 +11,7 @@ moon test -v
 moon run src/bin/main.mbt some_file.mbt
 # moon run src/bin/main.mbt test/test_src/ack.mbt
 
-# remote compiler test
+# remote compiler test(仅仅打包Head提交)
 git archive -o submit.zip HEAD
 
 # local language debug

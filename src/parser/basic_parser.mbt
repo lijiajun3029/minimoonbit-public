@@ -41,6 +41,20 @@ let add_sub : Parser[@lex.Token] = ptoken(
     },
 )
 
+let semicolon : Parser[@lex.Token] = ptoken(
+    fn {
+      Semicolon => true
+      _ => false
+    },
+)
+
+let newline : Parser[@lex.Token] = ptoken(
+    fn {
+      Newline => true
+      _ => false
+    },
+)
+
 let separator : Parser[@lex.Token] = ptoken(
     fn {
       Semicolon | Newline => true

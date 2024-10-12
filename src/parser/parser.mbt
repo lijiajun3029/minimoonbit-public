@@ -370,8 +370,12 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
       })
     )
     .and(block)// 解析函数体
+    // .and(block2)// 解析函数体
+    // .and(semicolon)
     .map(fn {
-        ((((_,fun_name), ((_,array_params),_)),ty), body)=> {
+        ((((_,fun_name), ((_,array_params),_)),ty), body)
+        // (((((_,fun_name), ((_,array_params),_)),ty), body),_)
+        => {
           let params=[]
           for param in array_params{
             params.push(param.0)
@@ -385,7 +389,6 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
         //   @types.Syntax::LetRec(fundef, @types.Syntax::Unit)
         // }
     })
-    // .and(ptoken(fn { RParen => true ;_ => false }))
     .parse(tokens)
 }
 
@@ -440,7 +443,22 @@ fn block(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex
     .parse(tokens)
 }
 
-
+fn block2(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+    lbrace
+    // lbrace.many().map(fn {_ => None})
+    // .and(expression)
+    // .and(statement()) // 解析单个语句
+    .and(statements) // 解析多个语句
+    .and(separator.many())
+    .and(rbrace)
+    .and(semicolon)
+    .map(fn { ((((_, stmts), _,),rbrace),_) => {
+      println("消耗了： \{rbrace}")
+      println("block内语法是 \{stmts}")
+      stmts
+    }})
+    .parse(tokens)
+}
 // fn brace_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
 //     rbrace
 //     .map(fn { rbrace_=> {
@@ -515,19 +533,14 @@ fn statement() -> Parser[@types.Syntax] {
 // }    
 
 fn statements(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
-  // println("22")
     statement().and(
       separator.and(statement()).many() // 0次或多次
       // statements
       ).map(
-        // fn { [(stmts,_)]=>
-        //           @types.Syntax::Seq([stmts])
-        // }
         fn {
       (first_stmt, list) => {
         let stmts=[]
         stmts.push(first_stmt)
-        println("33")
         let result = list.fold(
           init=first_stmt,
           fn {
