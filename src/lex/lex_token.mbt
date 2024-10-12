@@ -78,12 +78,9 @@ pub enum Token {
 
 
 // todo support debug etc.
-pub struct Position{
-  line:Int    // 行号
-  columb:Int  // 列号
-}
-
-pub struct Token_with_Position{
-  token:Token
-  position:Position
-}
+pub struct TokenPosition{
+  mut token_number : Int
+  mut line : Int   // 行号
+  mut column_start : Int  // 列号开始
+  mut column_end : Int  // 列号结束
+} derive(Show)

@@ -1,5 +1,7 @@
 // 语法解析
 
+
+let parser_context:ParserContext={is_top_level:false, token_length:0}
 // 解析操作符并映射到 Op 枚举
 fn map_op(token: @lex.Token) -> Option[@types.Op] {
   match token {
@@ -49,6 +51,8 @@ fn ptoken_skip(predicate : (@lex.Token) -> Bool) -> Parser[@lex.Token] {
     [] => None
   }
 }
+// ptoken_skip2
+
 // 对解析结果进行变换
 fn map[I, O](self : Parser[I], f : (I) -> O) -> Parser[O] {
   fn {
@@ -311,7 +315,16 @@ fn if_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
 fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
     ptoken(
       fn {
-        Fn => true
+        Fn => {
+          let curent_token_number=parser_context.token_length-tokens.length()
+          println("curent_token_number: \{curent_token_number}")
+          let {token_number,line,column_start,column_end}:@lex.TokenPosition = @lex.token_postion_array[curent_token_number]
+          if parser_context.is_top_level{
+            column_start==1
+          }else{
+            true
+          }
+        }
         _ => false
       }
     )
@@ -334,7 +347,7 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
       })
     )
     .and(
-        lparen
+        lparen_skip
         .and(
             // 解析参数列表，可以是空或一个或多个参数 
             ptoken(fn { 
@@ -353,10 +366,10 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
             // .map(fn { (param, _) => param })
             .many()
         )
-        .and(rparen)
+        .and(rparen_skip)
     )
     .and(
-      // 必须一起跳过，此处存在bug
+      // 可以缺省一次，必须一起跳过，此处存在bug，可以构造ptoken_skip2,内支持两个断言函数
       ptoken_skip(fn {
           Arrow => true
           _ => false
@@ -370,11 +383,10 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
       })
     )
     .and(block)// 解析函数体
-    // .and(block2)// 解析函数体
-    // .and(semicolon)
+    .and(semicolon)
     .map(fn {
-        ((((_,fun_name), ((_,array_params),_)),ty), body)
-        // (((((_,fun_name), ((_,array_params),_)),ty), body),_)
+        // ((((_,fun_name), ((_,array_params),_)),ty), body)
+        (((((_,fun_name), ((_,array_params),_)),ty), body),_)
         => {
           let params=[]
           for param in array_params{
@@ -427,6 +439,15 @@ fn lparen_rparen_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, A
     .parse(tokens)
 }
 
+// fn newline_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+//     newline_skip
+//     // .many()
+//     .map(fn {  _ => {
+//       @types.Syntax::Unit
+//     }})
+//     .parse(tokens)
+// }
+
 fn block(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
     lbrace
     // lbrace.many().map(fn {_ => None})
@@ -443,31 +464,6 @@ fn block(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex
     .parse(tokens)
 }
 
-fn block2(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
-    lbrace
-    // lbrace.many().map(fn {_ => None})
-    // .and(expression)
-    // .and(statement()) // 解析单个语句
-    .and(statements) // 解析多个语句
-    .and(separator.many())
-    .and(rbrace)
-    .and(semicolon)
-    .map(fn { ((((_, stmts), _,),rbrace),_) => {
-      println("消耗了： \{rbrace}")
-      println("block内语法是 \{stmts}")
-      stmts
-    }})
-    .parse(tokens)
-}
-// fn brace_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
-//     rbrace
-//     .map(fn { rbrace_=> {
-//       println("消耗了： \{rbrace_}")
-//       // rbrace_
-//     } })
-//     .parse(tokens)
-// }
-
 fn statement() -> Parser[@types.Syntax] {
   fn (tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
       println("statement tokens: \{tokens}")
@@ -481,6 +477,7 @@ fn statement() -> Parser[@types.Syntax] {
             expression,  // 表达式也是一种语句
             lparen_rparen_stmt,
             call_fn_stmt,
+            // newline_stmt,
             // lbrace,  // 单独解析}
         ]
         // todo spilt tokens
@@ -495,42 +492,11 @@ fn statement() -> Parser[@types.Syntax] {
             None => println("none")
             _ => break
           }
-
-          // if ast{  //  error
-          //   break
-          // }
-          
         }
       }
       ast
   }
 }
-// fn statements(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
-//     // 使用 many 来解析零个或多个语句，并将它们组合成一个块
-//     statement().many().map(fn { stmts =>
-//        // 将多个语句组合成一个序列，可以选择如何表示
-//        // 这里假设我们有一个 `Seq` 变体来表示语句序列
-//        // @types.Syntax::Seq(stmts)
-//         stmts[0]
-//     }).parse(tokens)  
-// }
-
-// fn statements(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
-//     statement().and(
-//       separator.and(statements)
-//       // statements
-//       ).map(fn { (stmt, (sep, rest)) =>
-//             match rest {
-//               @types.Syntax::Unit => {
-//                   @types.Syntax::Seq([stmt])
-//               }
-//               _ => {
-//                   @types.Syntax::Seq([stmt, rest])
-//               }
-//           }
-//         })
-//         .parse(tokens)  
-// }    
 
 fn statements(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
     statement().and(
@@ -561,44 +527,10 @@ fn statements(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView
         .parse(tokens)  
 }
 
-// fn statements(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
-//     statement()
-//         .and(
-//             (separator().and(statements)).or(Parser::pure(Syntax::Unit))
-//         )
-//         .map(fn { (stmt, rest) =>
-//             match rest {
-//                 Syntax::Unit => {
-//                     if stmt == Syntax::Unit {
-//                         Syntax::Seq([])
-//                     } else {
-//                         Syntax::Seq([stmt])
-//                     }
-//                 },
-//                 _ => Syntax::Seq([stmt, rest])
-//             }
-//         })
-//         .parse(tokens)
-// }
-
-
-// 扩展 parser 以支持 let 语句和表达式
-// pub fn parse_syntax(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
-//   // 优先级等 todo
-//   match let_statement(tokens){
-//     None=>match expression(tokens){
-//       None => None
-//       _ as ast => ast
-//     }
-//     _ as ast => ast
-//   }
-// }
-
 pub fn parse_syntax(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+  parser_context.token_length=tokens.length()
   statements(tokens)
 }
-
-
 
 test {
   let input = "1 + 2 * 3 - 6;"

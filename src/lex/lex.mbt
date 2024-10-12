@@ -1,4 +1,6 @@
 // minimoonbit词法解析
+pub let token_postion:TokenPosition={token_number:0, line:1, column_start:1, column_end:1}
+pub let token_postion_array:Array[TokenPosition]=[]
 
 pub struct Context {
   str : String
@@ -13,140 +15,151 @@ pub fn lex(context : Context) -> Unit {
   if offset >= str.length() {
     return
   }
-  
   match str[offset] {
     // 运算符
     '+' => {
       array.push(Add)
       context.offset += 1
-      lex(context)
     }
     '-' => {
       context.offset += 1
-      if context.offset<str.length(){
-        if str[context.offset]=='>'{
-          context.offset += 1
-          array.push(Arrow)
-        }else{
-          array.push(Sub)
-        }
+      if context.offset<str.length() && str[context.offset]=='>'{        
+        context.offset += 1
+        array.push(Arrow)
       }else{
         array.push(Sub)
       }
-      lex(context)
     }
     '*' => {
       array.push(Mul)
       context.offset += 1
-      lex(context)
     }
     '/' => {
       context.offset += 1
-      if context.offset<str.length(){
-        if str[context.offset]=='/'{
-          // context.offset += 1
+      if context.offset<str.length() && str[context.offset]=='/'{
+          context.offset += 1
           // array.push(Comment)
+          // 直到出现换行符，注释才结束
           while context.offset< str.length() {
               if str[context.offset]=='\n'{
                 context.offset += 1
+                token_postion.line += 1
+                token_postion.column_start=1
                 break
-              }else if str[context.offset]=='\r'{
-                if str[context.offset+1]=='\n'{
-                  context.offset += 2
-                  break
-                }
+              }else if str[context.offset]=='\r' && str[context.offset+1]=='\n'{
+                context.offset += 2
+                token_postion.line += 1
+                token_postion.column_start=1
+                break
               }else{
                 context.offset += 1
                 continue
               }
           }
-        }else{
-          array.push(Div)
-        }
       }else{
         array.push(Div)
       }
-      lex(context)
     }
     '=' => {
       // todo ==, =>
       array.push(Assign)
       context.offset += 1
-      lex(context)
     }
     '>' => {
       // todo >=
       array.push(Gt)
       context.offset += 1
-      lex(context)
     }
     '<' => {
       // todo <=
       array.push(Lt)
       context.offset += 1
-      lex(context)
     }
-    // 括号
     '(' => {
       array.push(LParen)
       context.offset += 1
-      lex(context)
     }
     ')' => {
       array.push(RParen)
       context.offset += 1
-      lex(context)
     }
     '{' => {
       context.array.push(LBrace)
       context.offset += 1
       
+      // push后立刻记录再过滤换行
+      if context.array.length()>token_postion.token_number{
+          token_postion.token_number = context.array.length()
+          token_postion.column_end=token_postion.column_start+(context.offset-offset)
+          // token_postion_array.push(token_postion) // 同值
+          token_postion_array.push({token_number : token_postion.token_number,
+            line : token_postion.line,
+            column_start : token_postion.column_start,
+            column_end : token_postion.column_end,
+          })
+          token_postion.column_start=token_postion.column_end
+          // println(token_postion_array)
+      }      
+      // 过滤换行符
       while context.offset< str.length() {
           if str[context.offset]=='\n'{
             context.offset += 1
-          }else if str[context.offset]=='\r'{
-            if str[context.offset+1]=='\n'{
-              context.offset += 2
-            }
+            token_postion.line += 1
+            token_postion.column_start=1
+          }else if str[context.offset]=='\r' && str[context.offset+1]=='\n'{
+            context.offset += 2
+            token_postion.line += 1
+            token_postion.column_start=1
           }else{
             break
           }
       }
-      lex(context)
     }
     '}' => {
       context.array.push(RBrace)
       context.offset += 1
-
+      
+      // push后立刻记录再过滤换行
+      if context.array.length()>token_postion.token_number{
+          token_postion.token_number = context.array.length()
+          token_postion.column_end=token_postion.column_start+(context.offset-offset)
+          // token_postion_array.push(token_postion) // 同值
+          token_postion_array.push({token_number : token_postion.token_number,
+            line : token_postion.line,
+            column_start : token_postion.column_start,
+            column_end : token_postion.column_end,
+          })
+          token_postion.column_start=token_postion.column_end
+          // println(token_postion_array)
+      }
+      // 过滤换行符
       while context.offset< str.length() { 
           if str[context.offset]=='\n'{
             context.offset += 1
-          }else if str[context.offset]=='\r'{
-            if str[context.offset+1]=='\n'{
+            token_postion.line += 1
+              token_postion.column_start=1
+          }else if str[context.offset]=='\r' && str[context.offset+1]=='\n'{
               context.offset += 2
-            }
+              token_postion.line += 1
+              token_postion.column_start=1
           }else{
             break
           }
-      }
-
-  
-      lex(context)
+      }  
     }
     '[' => {
       context.array.push(LBracket)
       context.offset += 1
-      lex(context)
     }
     ']' => {
       context.array.push(RBracket)
       context.offset += 1
-      lex(context)
     }
     '\n' => {
       context.array.push(Newline) // 识别为LF(Line Feed) 换行符（linux or mac os）
       context.offset += 1
-      lex(context)
+      token_postion.line += 1
+      token_postion.column_start=0
     }
     '\r' => {
           // 检查下一个字符是否为 '\n'，如果是，将其作为单一的 Newline 处理（windows）
@@ -154,40 +167,58 @@ pub fn lex(context : Context) -> Unit {
           if str[context.offset]=='\n'{
             context.array.push(Newline) // 识别为LF(Line Feed) 换行符
             context.offset += 1
-            lex(context)
+            token_postion.line += 1
+            token_postion.column_start=-1
+          }else{
+            // 没有push词法单元
+            token_postion.column_start+=1  
           }
     }
     ' ' | '\t'  => {
-      // 空格等直接忽略
+      // 空格等直接忽略，没有push词法单元
       context.offset += 1
-      lex(context)
+      token_postion.column_start+=1
     }
     ',' => {
       context.array.push(Comma)
       context.offset += 1
-      lex(context)
     }
     ';' => {
       context.array.push(Semicolon)
       context.offset += 1
+      // push后：先记录再换行
+      if context.array.length()>token_postion.token_number{
+          token_postion.token_number = context.array.length()
+          token_postion.column_end=token_postion.column_start+(context.offset-offset)
+          // token_postion_array.push(token_postion) // 同值
+          token_postion_array.push({token_number : token_postion.token_number,
+            line : token_postion.line,
+            column_start : token_postion.column_start,
+            column_end : token_postion.column_end,
+          })
+          token_postion.column_start=token_postion.column_end
+          // println(token_postion_array)
+      }
+      // 过滤换行符
       while context.offset< str.length() { 
           if str[context.offset]=='\n'{
             context.offset += 1
-          }else if str[context.offset]=='\r'{
-            if str[context.offset+1]=='\n'{
+            token_postion.line += 1
+            token_postion.column_start=1
+          }else if str[context.offset]=='\r' && str[context.offset+1]=='\n'{
               context.offset += 2
-            }
+              token_postion.line += 1
+              token_postion.column_start=1
           }else{
             break
           }
       }
-      lex(context)
     }
+    
     ':' => {
       // todo ：：
       context.array.push(Colon)
       context.offset += 1
-      lex(context)
     }
 
     ch => if is_number(ch) {
@@ -200,6 +231,20 @@ pub fn lex(context : Context) -> Unit {
             panic()
           }
   }
+  if context.array.length()>token_postion.token_number{
+      token_postion.token_number = context.array.length()
+      token_postion.column_end=token_postion.column_start+(context.offset-offset)
+      // token_postion_array.push(token_postion) // 同值
+      token_postion_array.push({token_number : token_postion.token_number,
+        line : token_postion.line,
+        column_start : token_postion.column_start,
+        column_end : token_postion.column_end,
+      })
+      token_postion.column_start=token_postion.column_end
+      // println(token_postion_array)
+  }
+  // println(context.array)
+  lex(context)
 }
 
 test {

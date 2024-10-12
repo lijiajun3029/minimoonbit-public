@@ -37,8 +37,8 @@ fn lex_identifier(context: Context) -> Unit {
     "Array" => context.array.push(Array)
     "main" => {
       context.array.push(Main)  // 自定义关键词,添加()方便解析。
-      context.array.push(LParen)  
-      context.array.push(RParen)
+      // context.array.push(LParen)  
+      // context.array.push(RParen)
     }
     "not" => context.array.push(Not)
 
@@ -51,5 +51,4 @@ fn lex_identifier(context: Context) -> Unit {
       }
     }
   }
-  lex(context)
 }

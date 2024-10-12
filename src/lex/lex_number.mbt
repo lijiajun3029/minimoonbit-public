@@ -38,7 +38,7 @@ fn lex_number_rest(context : Context, number : String,context_of_number:ContextO
     context.offset += 1
     if context_of_number.is_double{
       // 多个dot
-      println("多个dot")
+      @util.die("浮点数包含多个dot")
       return
     }else{
       context_of_number.is_double=true
@@ -50,6 +50,5 @@ fn lex_number_rest(context : Context, number : String,context_of_number:ContextO
     }else{
       array.push(Number(@strconv.parse_int?(number).unwrap()))
     }
-    lex(context)
   }
 }

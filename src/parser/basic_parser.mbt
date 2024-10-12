@@ -13,6 +13,20 @@ let rparen : Parser[@lex.Token] = ptoken(
   },
 )
 
+let lparen_skip : Parser[@lex.Token] = ptoken_skip(
+  fn {
+    LParen => true
+    _ => false
+  },
+)
+
+let rparen_skip : Parser[@lex.Token] = ptoken_skip(
+  fn {
+    RParen => true
+    _ => false
+  },
+)
+
 let lbrace : Parser[@lex.Token] = ptoken(
   fn {
     LBrace => true
@@ -44,11 +58,22 @@ let add_sub : Parser[@lex.Token] = ptoken(
 let semicolon : Parser[@lex.Token] = ptoken(
     fn {
       Semicolon => true
-      _ => false
+      _ as neg_semicolon=> {
+        println("\{neg_semicolon}并非Semicolon")
+        false
+        }
     },
 )
 
 let newline : Parser[@lex.Token] = ptoken(
+    fn {
+      Newline => true
+      _ => false
+    },
+)
+
+
+let newline_skip : Parser[@lex.Token] = ptoken_skip(
     fn {
       Newline => true
       _ => false
