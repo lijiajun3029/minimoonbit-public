@@ -22,9 +22,17 @@ pub fn lex(context : Context) -> Unit {
       lex(context)
     }
     '-' => {
-      // todo ->
-      array.push(Sub)
       context.offset += 1
+      if context.offset<str.length(){
+        if str[context.offset]=='>'{
+          context.offset += 1
+          array.push(Arrow)
+        }else{
+          array.push(Sub)
+        }
+      }else{
+        array.push(Sub)
+      }
       lex(context)
     }
     '*' => {
@@ -33,7 +41,6 @@ pub fn lex(context : Context) -> Unit {
       lex(context)
     }
     '/' => {
-      // todo // end (\n)(\r\n)
       context.offset += 1
       if context.offset<str.length(){
         if str[context.offset]=='/'{

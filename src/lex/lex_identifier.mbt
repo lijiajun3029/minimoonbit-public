@@ -43,9 +43,8 @@ fn lex_identifier(context: Context) -> Unit {
     "not" => context.array.push(Not)
 
     // 标识符
-    _ as i=> {
+    _ => {
       if context.offset<context.str.length() && context.str[context.offset]=='('{
-          println("push Fun_name token")
           context.array.push(Fun_name(ident))
       }else{
           context.array.push(Identifier(ident))

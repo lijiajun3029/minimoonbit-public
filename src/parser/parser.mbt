@@ -33,6 +33,22 @@ fn ptoken(predicate : (@lex.Token) -> Bool) -> Parser[@lex.Token] {
   }
 }
 
+fn ptoken_skip(predicate : (@lex.Token) -> Bool) -> Parser[@lex.Token] {
+  // 直接返回一个函数作为Parser[@lex.Token];跳过失败，并不消耗token
+  fn {  // 省略参数
+    [hd, .. as tl] as all=> {
+      if predicate(hd) {
+        Some((hd, tl)) 
+      } else {
+        // println("ptoken_skip \{all}")
+        // None
+        Some((hd,all))
+        // Some((@lex.Token::Arrow,tl))
+      }
+    }
+    [] => None
+  }
+}
 // 对解析结果进行变换
 fn map[I, O](self : Parser[I], f : (I) -> O) -> Parser[O] {
   fn {
@@ -155,159 +171,6 @@ fn zero_one[Value : Show](self : Parser[Value]) -> Parser[Array[Value]] {
 fn Parser::ref[Value](ref : Ref[Parser[Value]]) -> Parser[Value] {
   fn(input) { ref.val.parse(input) }
 }
-
-let lparen : Parser[@lex.Token] = ptoken(
-  fn {
-    LParen => true
-    _ => false
-  },
-)
-
-let rparen : Parser[@lex.Token] = ptoken(
-  fn {
-    RParen => true
-    _ => false
-  },
-)
-
-let lbrace : Parser[@lex.Token] = ptoken(
-  fn {
-    LBrace => true
-    _ => false
-  },
-)
-
-let rbrace : Parser[@lex.Token] = ptoken(
-  fn {
-    RBrace => true
-    _ => false
-  },
-)
-
-let mul_div : Parser[@lex.Token] = ptoken(
-    fn {
-      Mul | Div => true
-      _ => false
-    },
-)
-
-let add_sub : Parser[@lex.Token] = ptoken(
-    fn {
-      Add | Sub => true
-      _ => false
-    },
-)
-
-let separator : Parser[@lex.Token] = ptoken(
-    fn {
-      Semicolon | Newline => true
-      _ => false
-    },
-)
-let colon  : Parser[@lex.Token] = ptoken(fn {
-    Colon => true
-    _ => false
-})
-
-let comma  : Parser[@lex.Token] = ptoken(fn {
-    Comma => true
-    _ => false
-})
-
-let assign : Parser[@lex.Token] = ptoken(fn {
-    Assign => true
-    _ => false
-})
-
-// let pure : Parser[@lex.Token] = ptoken(
-//     fn {
-//       _ => true
-//     },
-// )
-
-let number : Parser[@types.Syntax] = ptoken(
-  fn {
-    @lex.Token::Number(_) => true
-    @lex.Token::Number_Double(_) => true
-    _ => false
-  },
-).map(fn {
-  Number(value) => @types.Syntax::Int(value)
-  Number_Double(value) => @types.Syntax::Double(value)
-  _ => @util.die("")
-  })
-
-let add_sub_number : Parser[@types.Syntax] = add_sub.and(ptoken(
-  fn {
-    @lex.Token::Number(_) => true
-    @lex.Token::Number_Double(_) => true
-    _ => false
-  },
-)).map(fn {
-  (Add,Number(value)) => {
-    @types.Syntax::Neg(@types.Syntax::Int(value),kind=Some(@types.Kind::Int))
-  }
-  (Sub,Number(value)) => {
-    @types.Syntax::Neg(@types.Syntax::Int(value),kind=Some(@types.Kind::Int))
-  }
-  (Add,Number_Double(value)) => {
-    @types.Syntax::Neg(@types.Syntax::Double(value),kind=Some(@types.Kind::Double))
-  }
-  (Sub,Number_Double(value)) => {
-    @types.Syntax::Neg(@types.Syntax::Double(value),kind=Some(@types.Kind::Double))
-  }
-  _ => @util.die("")
-  })
-
-let boolean : Parser[@types.Syntax] = ptoken(
-    fn {
-        @lex.Token::True | @lex.Token::False => true
-        _ => false
-    },
-).map(fn {
-    @lex.Token::True => @types.Syntax::Bool(true)
-    @lex.Token::False => @types.Syntax::Bool(false)
-    _ => @util.die("Unexpected token in boolean parser")
-})
-
-let var : Parser[@types.Syntax] =ptoken(fn { // 变量
-    Identifier(_) => true
-    _ => false
-  }).map(fn {
-    @lex.Token::Identifier(name) => @types.Syntax::Var(name)
-    })
-
-let add_sub_var : Parser[@types.Syntax] = add_sub.and(ptoken(fn { // 变量
-    Identifier(_) => true
-    _ => false
-  })).map(fn {
-    (Add,Identifier(name)) => {
-      @types.Syntax::Neg(@types.Syntax::Var(name),kind=Some(@types.Kind::Int))
-    }
-    (Sub,Identifier(name)) => {
-      @types.Syntax::Neg(@types.Syntax::Var(name),kind=Some(@types.Kind::Int))
-    }
-    _ => @util.die("add_sub_var错误")
-})
-
-let parse_type : Parser[@types.Type] = ptoken(
-  fn {
-      Unit => true
-      Bool => true
-      Int => true
-      Double => true
-      Tuple => true
-      Array => true
-      _ => false
-    },
-  ).map(fn {
-    Unit => @types.Type::Unit
-    Bool => @types.Type::Bool
-    Int => @types.Type::Int
-    Double => @types.Type::Double
-    // Tuple => @types.Type::Tuple(Array[Type])  // todo
-    // todo
-    })
   
 // 定义互递归函数
 // atomic = "(" expression ")" | Value
@@ -455,7 +318,7 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
     .and(
       ptoken(
         fn {
-        Identifier(_) => true
+        Fun_name(_) => true
         _ => false
       })
       .or(
@@ -466,43 +329,54 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
         })
       )
       .map(fn {
-        Identifier(fun_name) => fun_name  // 中间解析,可以简化最终解析
+        Fun_name(fun_name) => fun_name  // 中间解析,可以简化最终解析
         _  => "main"
       })
     )
     .and(
         lparen
         .and(
-            // 解析参数列表，可以是空或一个或多个参数
+            // 解析参数列表，可以是空或一个或多个参数 
             ptoken(fn { 
                 Identifier(_) => true
                 _ => false 
             }).map(fn {
                 Identifier(arg_name) => arg_name
             })
-            .and(ptoken(fn { Colon => true;_ => false }))
+            .and(colon)
             .and(parse_type)
             .map(fn { ((arg_name, _), arg_type) => (arg_name,arg_type) })   // 参数类型,中间解析,可以简化最终解析
-            .and(
+            .and(     // todo 目前函数定义都是无参数的，此处支持参数匹配问题待解决
                 comma
-                // .or(ptoken(fn { 
-                //     RParen => true
-                //     _ => false 
-                // }))
+                // .or(rparen)
             )
             // .map(fn { (param, _) => param })
             .many()
         )
         .and(rparen)
     )
+    .and(
+      // 必须一起跳过，此处存在bug
+      ptoken_skip(fn {
+          Arrow => true
+          _ => false
+      }).and(
+        ptoken_skip(fn { 
+                Colon => true
+                _ => false 
+            }).and(parse_type_skip)
+      ).map(fn{
+        (_,(_,ty)) => ty
+      })
+    )
     .and(block)// 解析函数体
     .map(fn {
-        (((_,fun_name), ((_,array_params),_)), body)=> {
+        ((((_,fun_name), ((_,array_params),_)),ty), body)=> {
           let params=[]
           for param in array_params{
             params.push(param.0)
           }
-          let fundef :@types.Fundef={name:(fun_name,@types.Type::Unit), args:params, body:body}
+          let fundef :@types.Fundef={name:(fun_name,ty), args:params, body:body}
           @types.Syntax::LetRec(fundef, @types.Syntax::Unit)
         }
         // (_,body)=>{
@@ -517,36 +391,25 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
 
 // 
 fn call_fn_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+    // 调用函数暂且支持单参数或无参数
     ptoken(
         fn {
         Fun_name(_) => true
         _ => false
       }).map(fn {
-        Fun_name(fun_name) => fun_name  // 中间解析,可以简化最终解析
+        Fun_name(fun_name) => @types.Syntax::Var(fun_name)  // 中间解析,可以简化最终解析; Letrec
       })
     .and(lparen)
-    .and(ptoken(fn { 
-          Identifier(_) => true
-                _ => false 
-          }).map(fn {
-              Identifier(arg_name) => arg_name
-          })
-          .and(
-            comma.or(
-              ptoken(fn { 
-                Identifier(_) => true
-                      _ => false 
-                })).map(fn {
-                    Identifier(arg_name) => arg_name
-                })
+    .and(
+            var
             .many()
-          )
           // .and(comma).many()
         )
+
     .and(rparen)
-    .map(fn {  _ => {
+    .map(fn {  (((fun_name,_),array_params),_) => {
       println("test")
-      @types.Syntax::Unit
+      @types.Syntax::App(fun_name,array_params)
     }})
     .parse(tokens)
 }
