@@ -313,6 +313,7 @@ fn if_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
 }
 
 fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+    let mut main_flag=false
     ptoken(
       fn {
         Fn => {
@@ -343,7 +344,10 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
       .or(
         ptoken(
         fn {
-          Main => true
+          Main =>{
+            main_flag=true
+            true
+          }
           _ => false
         })
       )
@@ -353,7 +357,11 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
       })
     )
     .and(
-        lparen_skip
+        (if main_flag{
+          lparen_skip
+        }else{
+          lparen
+        })
         .and(
             // 解析参数列表，可以是空或一个或多个参数 
             ptoken(fn { 
@@ -372,7 +380,13 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
             // .map(fn { (param, _) => param })
             .many()
         )
-        .and(rparen_skip)
+        .and(
+          (if main_flag{
+            rparen_skip
+          }else{
+            rparen
+          })
+        )
     )
     .and(
       // 可以缺省一次，必须一起跳过，此处存在bug，可以构造ptoken_skip2,内支持两个断言函数
