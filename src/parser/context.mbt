@@ -15,3 +15,6 @@ pub struct ParserContext {
     mut token_length: Int
     mut is_main: Bool
 } derive(Show)
+
+// pub let parser_context:ParserContext={is_top_level:true, token_length:0, is_main:false} // is_main初始化为false，在fn语句中出现问题！
+pub let parser_context:ParserContext={is_top_level:true, token_length:0, is_main:false}

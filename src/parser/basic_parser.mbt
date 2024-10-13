@@ -1,3 +1,6 @@
+// 使用type定义一个新类型：这个新类型是一个函数(输入token数组，输出解析V和剩余token数组)
+type Parser[V] (ArrayView[@lex.Token]) -> (V, ArrayView[@lex.Token])?
+
 // 基础解析器：解析词法单元（并将词法单元映射为语法单元）
 let lparen : Parser[@lex.Token] = ptoken(
   fn {

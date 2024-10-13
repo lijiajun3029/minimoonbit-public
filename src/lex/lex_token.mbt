@@ -73,8 +73,8 @@ pub enum Token {
   Newline // \n on linux or mac, \r\n on windows
   // WS // [ \t\r\n]+ -> skip
   // 等等
-  
-} derive(Show)
+  Skip  // ptoken skip!
+} derive(Show,Eq)
 
 
 // todo support debug etc.

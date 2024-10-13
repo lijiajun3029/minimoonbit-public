@@ -1,7 +1,6 @@
 // 语法解析
 
-// pub let parser_context:ParserContext={is_top_level:true, token_length:0, is_main:false} // is_main初始化为false，在fn语句中出现问题！
-pub let parser_context:ParserContext={is_top_level:true, token_length:0, is_main:true}
+
 // 解析操作符并映射到 Op 枚举
 fn map_op(token: @lex.Token) -> Option[@types.Op] {
   match token {
@@ -12,9 +11,6 @@ fn map_op(token: @lex.Token) -> Option[@types.Op] {
     _ => None
   }
 }
-
-// 使用type定义一个新类型：这个新类型是一个函数。
-type Parser[V] (ArrayView[@lex.Token]) -> (V, ArrayView[@lex.Token])?
 
 pub fn parse[V](
   self : Parser[V],
@@ -39,16 +35,25 @@ fn map[I, O](self : Parser[I], f : (I) -> O) -> Parser[O] {
 
 // 顺序解析：顺序解析，若遇到失败则返回None，提前退出解析。
 fn and[V1, V2](self : Parser[V1], parser2 : Parser[V2]) -> Parser[(V1, V2)] {
+  // and返回值为一个函数（输入input，成功则输出为((value1, value2), rest2)）
+  // 调用bind者，本身为None时，直接返回None；否则则表示parser1解析成功,解析结果为value1和rest1,继续使用parser2解析rest1,解析结果为value2,rest2
+  // 最后解析结果为((value1, value2), rest2)
   fn {
     input =>
       self
       .parse(input)
-      .bind(  // 调用bind者，本身为None时，直接返回None；否则则表示parser1解析成功,解析结果为value,继续使用parser2解析剩余的rest
+      .bind(
         fn {
-          (value, rest) =>
+          (value1, rest1) =>
             parser2
-            .parse(rest)
-            .map(fn { (value2, rest2) => ((value, value2), rest2) })
+            .parse(rest1)
+            .map(fn { 
+              (value2, rest2) =>{ 
+                println("成功解析and \{input}")
+                println("剩余token \{rest2}")
+                ((value1, value2), rest2)
+              }
+             })
         },
       )
   }
@@ -149,40 +154,6 @@ fn Parser::ref[Value](ref : Ref[Parser[Value]]) -> Parser[Value] {
   fn(input) { ref.val.parse(input) }
 }
   
-// 添加 let 语句的解析器
-fn let_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
-  ptoken(fn {
-    @lex.Token::Let => true
-    _ => false
-  })
-  .and(ptoken(fn {
-    Identifier(_) => true
-    _ => false
-  }).map(fn {
-    @lex.Token::Identifier(name) => name
-    })
-  )
-  .and(colon.and(parse_type).zero_one())  // todo
-  .and(assign)
-  .and(expression)  // 暂时仅支持expression
-  // .and(statements)
-  // .and(separator)
-  // .and(statements) // 去掉连续语句
-  .map(fn {
-    // (((((((_,name),_,), ty), _), expr1), _), expr2) => @types.Syntax::Let((name, ty), expr1, expr2) 
-    // ((((((_,name),_,), ty), _), expr1), _) => @types.Syntax::Let((name, ty), expr1, @types.Syntax::Unit) 
-    // (((((_,name),_,), ty), _), expr1) => @types.Syntax::Let((name, ty), expr1, @types.Syntax::Unit) 
-    (((((_,name)), array_ty), _), expr1) => {
-      let mut ty=@types.Type::Int
-      if array_ty.length()>0{
-        ty=array_ty[0].1
-      }
-      @types.Syntax::Let((name, ty), expr1, @types.Syntax::Unit) 
-    }
-  })
-  .parse(tokens)
-}
-
 // if语句解析器
 fn if_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
     ptoken(fn {
@@ -250,6 +221,7 @@ fn lparen_rparen_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, A
 
 fn block(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
     parser_context.is_top_level=false
+    println("block: \{parser_context}")
     lbrace
     // lbrace.many().map(fn {_ => None})
     // .and(expression)
@@ -274,6 +246,7 @@ fn statement() -> Parser[@types.Syntax] {
       if tokens.length()>0{
         println(tokens.length())
         let parsers = [
+            fn_main_statement,
             fn_statement,
             let_statement,
             if_statement,
@@ -333,114 +306,4 @@ fn statements(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView
 pub fn parse_syntax(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
   parser_context.token_length=tokens.length()
   statements(tokens)
-}
-
-test {
-  let input = "1 + 2 * 3 - 6;"
-  let tokens = []
-  @lex.lex({ str: input, offset: 0, array: tokens })
-  inspect!(
-    tokens,
-    content="[Number(1), Add, Number(2), Mul, Number(3), Sub, Number(6), Semicolon]",
-  )
-  let (expr, _) = parse_syntax(tokens[:]).unwrap()
-  // inspect!(expr,content="Prim(Prim(Int(1), Prim(Int(2), Int(3), Mul, kind=None), Add, kind=None), Int(6), Sub, kind=None)",)
-  inspect!(expr,content="Seq([Prim(Prim(Int(1), Prim(Int(2), Int(3), Mul, kind=None), Add, kind=None), Int(6), Sub, kind=None)])",)
-
-  let input = "1/2-(3)"
-  let tokens = []
-  @lex.lex({ str: input, offset: 0, array: tokens })
-  inspect!(
-    tokens,
-    content="[Number(1), Div, Number(2), Sub, LParen, Number(3), RParen]",
-  )
-  let (expr, _) = parse_syntax(tokens[:]).unwrap()
-  inspect!(
-    expr,
-    content="Seq([Prim(Prim(Int(1), Int(2), Div, kind=None), Int(3), Sub, kind=None)])",
-  )
-
-  // 多行表达式
-  // 字符串输入
-  let input = "1 + 2 - 3;2;"
-  // 词法解析
-  let tokens = []
-  @lex.lex({ str: input, offset: 0, array: tokens })
-  inspect!(tokens, content="[Number(1), Add, Number(2), Sub, Number(3), Semicolon, Number(2), Semicolon]")
-  // 语法解析（自顶向下的解释器组合子）
-  let (expr, _) = parse_syntax(tokens[:]).unwrap()
-  println(expr)
-  // inspect!(expr, content="Prim(Prim(Int(1), Int(2), Add, kind=None), Int(3), Sub, kind=None)")
-  inspect!(expr, content="Seq([Prim(Prim(Int(1), Int(2), Add, kind=None), Int(3), Sub, kind=None), Int(2)])")
-
-  let input = "1/2-3 \n4*5+6"
-  let tokens = []
-  @lex.lex({ str: input, offset: 0, array: tokens })
-  println(tokens)
-  inspect!(
-    tokens,
-    content="[Number(1), Div, Number(2), Sub, Number(3), Newline, Number(4), Mul, Number(5), Add, Number(6)]",
-  )
-  let (expr, _) = parse_syntax(tokens[:]).unwrap()
-  println(expr)
-  inspect!(
-    expr,
-    content="Seq([Prim(Prim(Int(1), Int(2), Div, kind=None), Int(3), Sub, kind=None), Prim(Prim(Int(4), Int(5), Mul, kind=None), Int(6), Add, kind=None)])",
-  )
-
-  // let input = "+ + 2 * 3 - 6"  // 暂时报错, moonbit支持不报错
-  // let tokens = []
-  // @lex.lex({ str: input, offset: 0, array: tokens })
-  // inspect!(
-  //   tokens,
-  //   content="[Add, Add, Number(2), Mul, Number(3), Sub, Number(6)]",
-  // )
-  // let (expr, _) = parser.parse(tokens[:]).unwrap()
-  // inspect!(
-  //   expr,
-  //   content="Minus(Plus(Add, Multiply(Number(2), Number(3))), Number(6))",
-  // )
-  
-  // let语句
-  let tokens = []
-  @lex.lex({ str: "let a:Int=1;2", offset: 0, array: tokens })
-  println(tokens)
-  inspect!(
-    tokens,
-    content="[Let, Identifier(\"a\"), Colon, Int, Assign, Number(1), Semicolon, Number(2)]"
-  )
-  let (expr, _) = parse_syntax(tokens[:]).unwrap()
-  println(expr)
-  inspect!(expr, content="Seq([Let((\"a\", Int), Int(1), Unit), Int(2)])")
-
-  // 多行let
-  let tokens = []
-  @lex.lex({ str: "let a:Int=1;let b:Int=1", offset: 0, array: tokens })
-  println(tokens)
-  inspect!(
-    tokens,
-    content="[Let, Identifier(\"a\"), Colon, Int, Assign, Number(1), Semicolon, Let, Identifier(\"b\"), Colon, Int, Assign, Number(1)]"
-  )
-  let (expr, _) = parse_syntax(tokens[:]).unwrap()
-  println(expr)
-  inspect!(expr, content="Seq([Let((\"a\", Int), Int(1), Unit), Let((\"b\", Int), Int(1), Unit)])")
-
-  let tokens = []
-  @lex.lex({ str: "let a:Int=1\nlet b:Int=1", offset: 0, array: tokens })
-  println(tokens)
-  inspect!(
-    tokens,
-    content="[Let, Identifier(\"a\"), Colon, Int, Assign, Number(1), Newline, Let, Identifier(\"b\"), Colon, Int, Assign, Number(1)]"
-  )
-  let (expr, _) = parse_syntax(tokens[:]).unwrap()
-  println(expr)
-  inspect!(expr, content="Seq([Let((\"a\", Int), Int(1), Unit), Let((\"b\", Int), Int(1), Unit)])")
-
-  // if in file
-  // moon run src/bin/main.mbt -- --end-stage parse test/test_simple_src/if_else.mbt  // success
-  // moon run src/bin/main.mbt -- --end-stage parse test/test_simple_src/if_else2.mbt // failure  换行
-  // moon run src/bin/main.mbt -- --end-stage parse test/test_simple_src/if.mbt // failure  缺少else
-  // moon run src/bin/main.mbt -- --end-stage parse test/test_simple_src/if2.mbt  // failure  缺少else
-
-  // fn in file
 }

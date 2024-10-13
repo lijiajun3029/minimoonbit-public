@@ -1,7 +1,9 @@
 # install third packages
 # moon login  # 登陆你的账户
+# 安装依赖
 moon update   # 更新包注册表索引
 moon add package_name # from moon.mod.json
+moon install
 
 git submodule update --init --recursive
 
