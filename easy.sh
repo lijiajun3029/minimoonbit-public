@@ -29,10 +29,10 @@ moon run src/bin/main.mbt -- --end-stage parse test/test_simple_src/if_else.mbt
 
 # test cases(todo test all)(auto test on local machine)
 # AC
+moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/arith.mbt
 moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/ident.mbt
 moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/numbers.mbt
 moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/global_let.mbt
-moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/arith.mbt
 moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/nested_fns.mbt
 moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/very_deep.mbt
 
@@ -41,3 +41,7 @@ moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/_neg_iden
 moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/_neg_no_semicolon.mbt
 moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/_neg_top_level_not_aligned.mbt
 moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/_neg_main_no_paren.mbt
+
+
+# 类型检查
+moon run src/bin/main.mbt -- --end-stage typecheck test/test_cases/parsing/arith.mbt

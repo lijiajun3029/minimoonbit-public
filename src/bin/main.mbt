@@ -67,7 +67,7 @@ fn CompileStatus::initialize(
   println(start_stage)
   match start_stage {
     Parse => v.source_code = Some(file)
-    Typecheck => v.ast = Some(@types.Syntax::from_json!(@json.parse!(file)))  // todo
+    Typecheck => v.ast = Some(@types.Syntax::from_json!(@json.parse!(file)))  // moonbit编译器可以完成解析
     Knf => v.typechecked = Some(@types.Syntax::from_json!(@json.parse!(file)))
     KnfOpt => {
       v.knf = Some(@knf.Knf::from_json!(@json.parse!(file)))
@@ -109,8 +109,13 @@ fn CompileStatus::step(self : CompileStatus) -> Bool{
       println("end parse")
     }
     Typecheck => {
-      let typechecked = @util.die("TODO: typecheck")
-      self.typechecked = Some(typechecked)
+      match self.ast{
+        Some(ast) => {
+          let typechecked = ast
+          self.typechecked = Some(typechecked)
+        }
+        None=> @util.die("没有完成语法解析。")
+      }
     }
     Knf => {
       let knf = self.knf_env.to_knf(self.typechecked.unwrap())
