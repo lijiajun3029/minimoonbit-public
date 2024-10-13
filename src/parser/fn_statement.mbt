@@ -103,30 +103,22 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
                    arg_name
                    }
             })
-            .and(colon)
-            .and(parse_type)
-            .map(fn { ((arg_name, _), arg_type) => (arg_name,arg_type) })   // 参数类型,中间解析,可以简化最终解析
-            .and(     // todo 目前函数定义都是无参数的，此处支持参数匹配问题待解决
-                comma
-                // .or(rparen)
+            .and(colon_skip.and(parse_type_skip))
+            // .and(ptoken_skip2(colon,parse_type))
+            .map(fn { ((arg_name), (_,arg_type)) => (arg_name,arg_type)})   // 参数类型,中间解析,可以简化最终解析
+            .and(
+                comma_skip
             )
             // .map(fn { (param, _) => param })
             .many()
-        
-        .and(
-            rparen
-          )
+        .and(rparen)
     )
     .and(
       // 可以缺省一次，必须一起跳过，此处存在bug，可以构造ptoken_skip2,内支持两个断言函数
       ptoken_skip(fn {
           Arrow => true
           _ => false
-      }).and(
-        ptoken_skip(fn { 
-                Colon => true
-                _ => false 
-            }).and(parse_type_skip)
+      }).and(colon_skip.and(parse_type_skip)  // todo typecheck
       ).map(fn{
         (_,(_,ty)) => ty
       })
@@ -144,11 +136,30 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
           let fundef :@types.Fundef={name:(fun_name,ty), args:params, body:body}
           @types.Syntax::LetRec(fundef, @types.Syntax::Unit)
         }
-        // (_,body)=>{
-        //   let params=[]
-        //   let fundef :@types.Fundef={name:("main",@types.Type::Unit), args:params, body:body}
-        //   @types.Syntax::LetRec(fundef, @types.Syntax::Unit)
-        // }
     })
+    .parse(tokens)
+}
+
+fn call_fn_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+    // 调用函数暂且支持单参数或无参数
+    ptoken(
+        fn {
+        Fun_name(_) => true
+        _ => false
+      }).map(fn {
+        Fun_name(fun_name) => @types.Syntax::Var(fun_name)  // 中间解析,可以简化最终解析; Letrec
+      })
+    .and(lparen)
+    .and(
+          // var.many()
+          statement().many()
+          // .and(comma).many()
+        )
+
+    .and(rparen)
+    .map(fn {  (((fun_name,_),array_params),_) => {
+      println("test")
+      @types.Syntax::App(fun_name,array_params)
+    }})
     .parse(tokens)
 }

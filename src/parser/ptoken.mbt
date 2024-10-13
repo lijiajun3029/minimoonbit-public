@@ -31,7 +31,23 @@ fn ptoken_skip(predicate : (@lex.Token) -> Bool) -> Parser[@lex.Token] {
     [] => None
   }
 }
-// ptoken_skip2
+
+fn ptoken_skip2(predicate_first : (@lex.Token) -> Bool, predicate_second: (@lex.Token) -> Bool) -> Parser[@lex.Token] {
+  // 可有可无
+  // 直接返回一个函数作为Parser[@lex.Token];跳过失败，并不消耗token
+  fn {  // 省略参数
+    [first,second, .. as tl] as all=> {
+      if predicate_first(first) && predicate_second(second) {
+        Some((first, tl)) 
+      } else {
+        // println("ptoken_skip \{all}")
+        // None
+        Some((@lex.Token::Skip,all))
+      }
+    }
+    [] => None
+  }
+}
 
 fn ptoken_not(predicate : (@lex.Token) -> Bool) -> Parser[@lex.Token] {
   // 必须要无
