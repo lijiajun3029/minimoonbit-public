@@ -14,4 +14,4 @@ pub struct ParserContext {
     // is_generator: Bool // 是否为生成器上下文
     mut token_length: Int
     mut is_main: Bool
-}
+} derive(Show)

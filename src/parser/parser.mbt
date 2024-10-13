@@ -26,50 +26,6 @@ pub fn parse[V](
   (self._)(tokens)  //  self._: self.0
 }
 
-// 判断一个单词是否符合语法，单词本身以及位置等。
-fn ptoken(predicate : (@lex.Token) -> Bool) -> Parser[@lex.Token] {
-  // 直接返回一个函数作为Parser[@lex.Token]
-  fn {  // 省略参数
-    [hd, .. as tl] => if predicate(hd) { Some((hd, tl)) } else { None }
-    [] => None
-  }
-}
-
-fn ptoken_skip(predicate : (@lex.Token) -> Bool) -> Parser[@lex.Token] {
-  // 直接返回一个函数作为Parser[@lex.Token];跳过失败，并不消耗token
-  fn {  // 省略参数
-    [hd, .. as tl] as all=> {
-      if predicate(hd) {
-        Some((hd, tl)) 
-      } else {
-        // println("ptoken_skip \{all}")
-        // None
-        Some((hd,all))
-        // Some((@lex.Token::Arrow,tl))
-      }
-    }
-    [] => None
-  }
-}
-// ptoken_skip2
-
-fn ptoken_not(predicate : (@lex.Token) -> Bool) -> Parser[@lex.Token] {
-  // 直接返回一个函数作为Parser[@lex.Token];跳过失败，并不消耗token
-  fn {  // 省略参数
-    [hd, .. as tl] as all=> {
-      if predicate(hd) {
-        None
-      } else {
-        // println("ptoken_skip \{all}")
-        // None
-        Some((hd,all))
-        // Some((@lex.Token::Arrow,tl))
-      }
-    }
-    [] => None
-  }
-}
-
 // 对解析结果进行变换
 fn map[I, O](self : Parser[I], f : (I) -> O) -> Parser[O] {
   fn {
@@ -193,88 +149,6 @@ fn Parser::ref[Value](ref : Ref[Parser[Value]]) -> Parser[Value] {
   fn(input) { ref.val.parse(input) }
 }
   
-// 定义互递归函数
-// atomic = "(" expression ")" | Value
-// 使用组合子构建的解析器atomic：从左到右解析表达式或数值tokens
-fn atomic(tokens : ArrayView[@lex.Token]) -> (@types.Syntax, ArrayView[@lex.Token])? {
-  lparen
-  .and(
-    // statements, // 引用函数,statements函数自动类型转换为Parser
-    expression  // 暂时仅支持
-  )
-  .and(rparen)
-  .map(fn { ((_, expr), _) => expr })   // 忽略括号
-  .or(number)
-  .or(add_sub_number)
-  .or(boolean)
-  .or(var)
-  .or(add_sub_var)
-  .parse(tokens)
-}
-
-// 使用组合子构建的解析器combine：从左到右解析atomic和乘或除运算符（递归）
-fn combine(tokens : ArrayView[@lex.Token]) -> (@types.Syntax, ArrayView[@lex.Token])? {
-  Parser(atomic)
-  .and(
-    mul_div.map(map_op)
-    .and(atomic)
-    .many()
-  )
-  .map(
-    fn {
-      (e, list) => {
-        println("combine fold: \{e} \{list}")
-        list.fold(
-          init=e,
-          fn { 
-            e,(Some(op),expr)=>
-                match op{
-                @types.Op::Mul => @types.Syntax::Prim(e, expr, @types.Op::Mul,kind=None)
-                @types.Op::Div => @types.Syntax::Prim(e, expr, @types.Op::Div,kind=None)
-                _ => @util.die("不应该出现在这里")
-                }
-            _,_ => @util.die("不应该出现在这里")
-          },
-        )
-      }
-    },
-  )
-  .parse(tokens)
-}
-
-// 使用组合子构建的解析器expression：从左到右解析combine和加或减运算符（递归）
-fn expression(tokens : ArrayView[@lex.Token]) -> (@types.Syntax, ArrayView[@lex.Token])? {
-  Parser(combine)
-  .and(
-    add_sub.map(map_op)
-    .and(combine)
-    .many(),
-  )
-  // .and(separator)
-  .map(
-    fn {
-      (e, list) => {
-        let result = list.fold(
-          init=e,
-          fn {
-              e,(Some(op),expr)=>
-                  match op{
-                    @types.Op::Add => @types.Syntax::Prim(e, expr,@types.Op::Add,kind=None)
-                    @types.Op::Sub => @types.Syntax::Prim(e, expr,@types.Op::Sub,kind=None)
-                    _ => @util.die("不应该出现在这里")
-                  }
-              _,_ => @util.die("不应该出现在这里")
-          },
-        )
-        println("开始解析表达式 \{tokens}")
-        println("expression fold: \{e} \{list} -> \{result}")
-        result
-      }
-    },
-  )
-  .parse(tokens)
-}
-
 // 添加 let 语句的解析器
 fn let_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
   ptoken(fn {
@@ -329,123 +203,6 @@ fn if_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
     .parse(tokens)
 }
 
-fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
-    ptoken(
-      fn {
-        Fn => {
-          let curent_token_number=parser_context.token_length-tokens.length()
-          println("FN curent_token_number: \{curent_token_number}")
-          let {token_number,line,column_start,column_end}:@lex.TokenPosition = @lex.token_postion_array[curent_token_number]
-          println("FN column_start: \{column_start}")
-          if parser_context.is_top_level{
-            if column_start==1{
-              true
-            }else{
-              println("顶级未左对齐")
-              false
-            }
-          }else{
-            true
-          }
-        }
-        _ => false
-      }
-    )
-    .and(
-      ptoken(
-        fn {
-        Fun_name(_) => {
-          parser_context.is_main=false
-          true
-        }
-        _ => false
-      })
-      .or(
-        ptoken(
-        fn {
-          Main =>{
-            println("main function")
-            parser_context.is_main=true
-            true
-          }
-          _ => false
-        })
-      )
-      .map(fn {
-        Fun_name(fun_name) => fun_name  // 中间解析,可以简化最终解析
-        _  => "main"
-      })
-    )
-    .and(
-        (if parser_context.is_main{
-          lparen_not
-        }else{
-          lparen
-        })
-        .and(
-            // 解析参数列表，可以是空或一个或多个参数 
-            ptoken(fn { 
-                Identifier(_) => true
-                _ => false 
-            }).map(fn {
-                Identifier(arg_name) =>{
-                   println("test order")
-                   arg_name
-                   }
-            })
-            .and(colon)
-            .and(parse_type)
-            .map(fn { ((arg_name, _), arg_type) => (arg_name,arg_type) })   // 参数类型,中间解析,可以简化最终解析
-            .and(     // todo 目前函数定义都是无参数的，此处支持参数匹配问题待解决
-                comma
-                // .or(rparen)
-            )
-            // .map(fn { (param, _) => param })
-            .many()
-        )
-        .and(
-          (if parser_context.is_main{
-            rparen_not
-          }else{
-            rparen
-          })
-        )
-    )
-    .and(
-      // 可以缺省一次，必须一起跳过，此处存在bug，可以构造ptoken_skip2,内支持两个断言函数
-      ptoken_skip(fn {
-          Arrow => true
-          _ => false
-      }).and(
-        ptoken_skip(fn { 
-                Colon => true
-                _ => false 
-            }).and(parse_type_skip)
-      ).map(fn{
-        (_,(_,ty)) => ty
-      })
-    )
-    .and(block)// 解析函数体
-    .and(semicolon)
-    .map(fn {
-        // ((((_,fun_name), ((_,array_params),_)),ty), body)
-        (((((_,fun_name), ((_,array_params),_)),ty), body),_)
-        => {
-          let params=[]
-          for param in array_params{
-            params.push(param.0)
-          }
-          let fundef :@types.Fundef={name:(fun_name,ty), args:params, body:body}
-          @types.Syntax::LetRec(fundef, @types.Syntax::Unit)
-        }
-        // (_,body)=>{
-        //   let params=[]
-        //   let fundef :@types.Fundef={name:("main",@types.Type::Unit), args:params, body:body}
-        //   @types.Syntax::LetRec(fundef, @types.Syntax::Unit)
-        // }
-    })
-    .parse(tokens)
-}
 
 // 
 fn call_fn_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
@@ -504,6 +261,7 @@ fn block(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex
       println("消耗了： \{rbrace}")
       println("block内语法是 \{stmts}")
       parser_context.is_top_level=true
+      println(parser_context)
       stmts
     }})
     .parse(tokens)
@@ -560,7 +318,6 @@ fn statements(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView
                 stmts.push(one_statement)
                 first_stmt
               }
-              _,_=> @util.die("不应该出现在这里")
           },
         )
         println("stmts fold: \{first_stmt} \{list} -> \{result}")
