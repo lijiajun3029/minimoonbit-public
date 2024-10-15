@@ -116,11 +116,20 @@ let colon  : Parser[@lex.Token] = ptoken(fn {
     _ => false
 })
 
+let colon_skip  : Parser[@lex.Token] = ptoken_skip(fn {
+    Colon => true
+    _ => false
+})
+
 let comma  : Parser[@lex.Token] = ptoken(fn {
     Comma => true
     _ => false
 })
 
+let comma_skip  : Parser[@lex.Token] = ptoken_skip(fn {
+    Comma => true
+    _ => false
+})
 let assign : Parser[@lex.Token] = ptoken(fn {
     Assign => true
     _ => false
@@ -238,5 +247,5 @@ let parse_type_skip : Parser[@types.Type] = ptoken_skip(
     Double => @types.Type::Double
     // Tuple => @types.Type::Tuple(Array[Type])  // todo
     // todo
-    _ => @types.Type::Unit
+    _ => @types.Type::Var({val:None})
     })

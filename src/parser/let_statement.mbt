@@ -27,6 +27,8 @@ fn let_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayV
       let mut ty=@types.Type::Int
       if array_ty.length()>0{
         ty=array_ty[0].1
+      }else{
+        // ty=
       }
       @types.Syntax::Let((name, ty), expr1, @types.Syntax::Unit) 
     }

@@ -6,7 +6,7 @@ pub struct Context {
   str : String
   mut offset : Int
   array : Array[Token]
-}
+} derive(Show)
 
 pub fn lex(context : Context) -> Unit {
   // 方法1

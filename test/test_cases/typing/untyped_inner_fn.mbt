@@ -1,7 +1,7 @@
-fn main() {
+fn main {
     fn foo(i) {
         i + 190
     };
 
-    print_int(foo(1800))
+    print_int(foo(180))
 };

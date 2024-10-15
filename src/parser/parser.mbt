@@ -49,8 +49,6 @@ fn and[V1, V2](self : Parser[V1], parser2 : Parser[V2]) -> Parser[(V1, V2)] {
             .parse(rest1)
             .map(fn { 
               (value2, rest2) =>{ 
-                println("成功解析and \{input}")
-                println("剩余token \{rest2}")
                 ((value1, value2), rest2)
               }
              })
@@ -171,32 +169,6 @@ fn if_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
     .map(fn {
         ((((_, condition), then_branch), _,),else_branch) => @types.Syntax::If(condition, then_branch, else_branch)
     })
-    .parse(tokens)
-}
-
-
-// 
-fn call_fn_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
-    // 调用函数暂且支持单参数或无参数
-    ptoken(
-        fn {
-        Fun_name(_) => true
-        _ => false
-      }).map(fn {
-        Fun_name(fun_name) => @types.Syntax::Var(fun_name)  // 中间解析,可以简化最终解析; Letrec
-      })
-    .and(lparen)
-    .and(
-            var
-            .many()
-          // .and(comma).many()
-        )
-
-    .and(rparen)
-    .map(fn {  (((fun_name,_),array_params),_) => {
-      println("test")
-      @types.Syntax::App(fun_name,array_params)
-    }})
     .parse(tokens)
 }
 
