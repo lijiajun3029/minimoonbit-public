@@ -247,5 +247,5 @@ let parse_type_skip : Parser[@types.Type] = ptoken_skip(
     Double => @types.Type::Double
     // Tuple => @types.Type::Tuple(Array[Type])  // todo
     // todo
-    _ => @types.Type::Unit
+    _ => @types.Type::Var({val:None})
     })

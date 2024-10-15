@@ -50,9 +50,11 @@ pub enum Type {
   Fun(Array[Type], Type) // (_, _, _) -> _
   Tuple(Array[Type]) // (_, _, _)
   Array(Type) // Array[_]
-  Var(Ref[Type?])
+  // Var(mut ~t: Type?)  // 定义可变类型变量
+  Var(Ref[Type?]) // 等价于视频教程中的Var(mut ~t: Type?):VScode鼠标光标悬浮在其上即见真面目，Ref[A]是一个泛型结构体(此时传入具体的类型Type?)，而Var()是一个函数，函数名被定义为Var。
   Ptr
 } derive(Show)
+
 
 pub fn Type::is_ptr_like(self : Type) -> Bool {
   match self {
@@ -106,4 +108,16 @@ pub fn Type::op_equal(self : Type, other : Type) -> Bool {
     (Var(x), Var(y)) => x.val == y.val
     _ => false
   }
+}
+
+// 找到类型变量代表的实际类型：
+pub fn Type::repr(self: Type) -> Type {
+   match self {
+     Var({val:Some(ty)} as tvar) => {
+       let actual_ty = ty.repr()
+       tvar.val = Some(actual_ty)
+       actual_ty
+     }
+     ty => ty
+   }
 }

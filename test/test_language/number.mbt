@@ -10,5 +10,6 @@ fn main {
   println(4--4) // 8
   let a=1
   println(1+ -a)
+  // println(1+1.5)
   // println(0 1)
 }

@@ -93,7 +93,7 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
     )
     .and(lparen)
     .and(
-            // 解析参数列表，可以是空或一个或多个参数 
+            // 解析参数列表，可以是空或一个或多个参数 todo：一个可选参数（可选类型）、many（一个必选逗号+一个参数（可选类型））、一个可选逗号。
             ptoken(fn { 
                 Identifier(_) => true
                 _ => false 
@@ -105,6 +105,7 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
             })
             .and(colon_skip.and(parse_type_skip))
             // .and(ptoken_skip2(colon,parse_type))
+            // 获得参数名和参数类型
             .map(fn { ((arg_name), (_,arg_type)) => (arg_name,arg_type)})   // 参数类型,中间解析,可以简化最终解析
             .and(
                 comma_skip
@@ -120,6 +121,7 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
           _ => false
       }).and(colon_skip.and(parse_type_skip)  // todo typecheck
       ).map(fn{
+        // 获得返回类型
         (_,(_,ty)) => ty
       })
     )
