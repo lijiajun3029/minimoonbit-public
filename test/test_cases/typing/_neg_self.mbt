@@ -1,6 +1,6 @@
 fn main {
-    fn foo(f) {
-        f(f)
+    fn foo(t) {
+        f(t)
     };
 
     ()

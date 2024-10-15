@@ -122,20 +122,21 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
       }).and(colon_skip.and(parse_type_skip)  // todo typecheck
       ).map(fn{
         // 获得返回类型
-        (_,(_,ty)) => ty
+        (_,(_,return_type)) => return_type
       })
     )
     .and(block)// 解析函数体
     .and(semicolon)
     .map(fn {
         // ((((_,fun_name), ((_,array_params),_)),ty), body)
-        ((((((_,fun_name),_), ((array_params),_)),ty), body),_)
+        ((((((_,fun_name),_), ((array_params),_)),return_type), body),_)
         => {
           let params=[]
           for param in array_params{
             params.push(param.0)
           }
-          let fundef :@types.Fundef={name:(fun_name,ty), args:params, body:body}
+          // body[0]
+          let fundef :@types.Fundef={name:(fun_name,return_type), args:params, body:body}
           @types.Syntax::LetRec(fundef, @types.Syntax::Unit)
         }
     })

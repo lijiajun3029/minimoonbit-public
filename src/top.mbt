@@ -21,7 +21,7 @@ pub enum Syntax {
   LetRec(Fundef, Syntax) // fn f() {} ; _
   LetTuple(Array[(String, Type)], Syntax, Syntax) // let (_ , _) : (_, _)= _; _
   Put(Syntax, Syntax, Syntax) // _[_] = _
-  Seq(Array[Syntax])  // drop
+  Seq(Array[Syntax])  // 未来弃用：目前其等同于Tuple(Array[Syntax])，本质上是一个函数，输入为语法数组，输出为语法，且无法取出任意一条语句。
 } derive(Show)
 
 pub enum Kind {

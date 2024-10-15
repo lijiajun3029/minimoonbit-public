@@ -2,6 +2,7 @@
     "import": [
         "moonbitlang/minimbt/util",
         "moonbitlang/minimbt/lex",
+        "moonbitlang/minimbt/typing",
         {
             "path": "moonbitlang/minimbt",
             "alias": "types"
