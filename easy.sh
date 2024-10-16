@@ -44,6 +44,8 @@ moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/_neg_main
 
 
 # 类型检查
-moon run src/bin/main.mbt -- --end-stage typecheck test/test_cases/parsing/arith.mbt  // todo change
-moon run src/bin/main.mbt -- --end-stage parse test/test_cases/typing/untyped_inner_fn.mbt
-moon run src/bin/main.mbt -- --end-stage parse test/test_cases/typing/landins_knot.mbt
+moon run src/bin/main.mbt -- --end-stage typecheck test/test_cases/typing/arith.mbt
+moon run src/bin/main.mbt -- --end-stage typecheck test/test_cases/typing/untyped_inner_fn.mbt
+moon run src/bin/main.mbt -- --end-stage typecheck test/test_cases/typing/landins_knot.mbt
+
+moon run src/bin/main.mbt -- --end-stage typecheck test/test_cases/typing/_neg_self.mbt 

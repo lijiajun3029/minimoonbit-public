@@ -83,7 +83,7 @@ fn CompileStatus::initialize(
 }
 
 /// Run the next stage of compilation. Returns true if the compilation is finished.
-fn CompileStatus::step(self : CompileStatus) -> Bool!@typing.TyErr{
+fn CompileStatus::step(self : CompileStatus) -> Bool{
   if self.curr_stage >= self.end_stage {
     return true
   }
