@@ -83,7 +83,7 @@ fn CompileStatus::initialize(
 }
 
 /// Run the next stage of compilation. Returns true if the compilation is finished.
-fn CompileStatus::step(self : CompileStatus) -> Bool{
+fn CompileStatus::step(self : CompileStatus) -> Bool!@typing.TyErr{
   if self.curr_stage >= self.end_stage {
     return true
   }
@@ -91,31 +91,26 @@ fn CompileStatus::step(self : CompileStatus) -> Bool{
     Parse => {
       let source_code = self.source_code.unwrap()
       println(source_code)
-      // test
-      // let source_code = "1 + 2 - 3"
       let tokens = []
       @lex.lex({ str: source_code, offset: 0, array: tokens })
       println(tokens)
       println("end lex")
       let (parsed, _) = @parser.parse_syntax(tokens[:]).unwrap()
-      // println(parsed)
-      // let (expr, _) = @parser.parser.parse(tokens[:]).unwrap()
-      // println(expr)
-      // self.ast = expr
-      // let parsed = @util.die("TODO: parse")
       self.ast =Some(parsed)
+      // self.ast =parsed
       // self.ast=[parsed]  // 可不可以返回一个Array[Syntax],如何返回一个Syntax
       println(self.ast)
       println("end parse")
     }
     Typecheck => {
-      match self.ast{
-        Some(ast) => {
-          let typechecked = ast
-          self.typechecked = Some(typechecked)
-        }
-        None=> @util.die("没有完成语法解析。")
-      }
+      self.typechecked = self.ast
+
+      // bug
+      // match self.ast{
+      //     None => @util.die("")
+      //     _ => self.typechecked = @typing.typing!(self.ast)
+      // }
+      // self.typechecked = @typing.typing!(self.ast)
     }
     Knf => {
       let knf = self.knf_env.to_knf(self.typechecked.unwrap())

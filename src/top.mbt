@@ -3,11 +3,11 @@
 // 注意：返回的语法结构，本身就可以自行构建一个Array[Syntax]  ：)，但是Array[Syntax]和Syntax类型验证时又不同！头大！
 pub enum Syntax {
   Unit
-  Bool(Bool) // true false
-  Int(Int) // int
-  Double(Double) // double
+  Bool(Bool) // Bool(true),Bool(false)
+  Int(Int) // Int(1)
+  Double(Double) // Double(1.1)
   Var(String) // _
-  Tuple(Array[Syntax]) // (_, _, _)
+  Tuple(Array[Syntax]) // Tuple(_, _, _)
   Not(Syntax) // not(_)
   Array(Syntax, Syntax) // Array::make(_, _)
   Neg(Syntax, mut ~kind : Kind?) // -_
@@ -21,7 +21,7 @@ pub enum Syntax {
   LetRec(Fundef, Syntax) // fn f() {} ; _
   LetTuple(Array[(String, Type)], Syntax, Syntax) // let (_ , _) : (_, _)= _; _
   Put(Syntax, Syntax, Syntax) // _[_] = _
-  Seq(Array[Syntax])  // 未来弃用：目前其等同于Tuple(Array[Syntax])，本质上是一个函数，输入为语法数组，输出为语法，且无法取出任意一条语句。
+  Seq(Array[Syntax])  // Seq(_,_,_):未来弃用：目前其等同于Tuple(Array[Syntax])，本质上是一个函数，输入为语法数组，输出为语法，且无法取出任意一条语法。
 } derive(Show)
 
 pub enum Kind {
@@ -115,7 +115,7 @@ pub fn Type::repr(self: Type) -> Type {
    match self {
      Var({val:Some(ty)} as tvar) => {
        let actual_ty = ty.repr()
-       tvar.val = Some(actual_ty)
+       tvar.val = Some(actual_ty)   // 压缩路径
        actual_ty
      }
      ty => ty
