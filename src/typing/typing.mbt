@@ -105,10 +105,10 @@ fn deref_term(syntax: @types.Syntax) -> @types.Syntax{
     @types.Syntax::Unit
 }
 
-pub fn typing(e : @types.Syntax) -> @types.Syntax!TyErr {
-    unify!(Unit, infer!(@immut/hashmap.T::new(), e))
+pub fn typing(ast : @types.Syntax) -> @types.Syntax!TyErr {
+    unify!(Unit, infer!(@immut/hashmap.T::new(), ast))
     for ext_f, ext_t in extenv {
     extenv[ext_f] = deref_type(ext_t)
     }
-    deref_term(e)
+    deref_term(ast)
 }

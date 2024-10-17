@@ -13,9 +13,6 @@ moon test -v
 moon run src/bin/main.mbt some_file.mbt
 # moon run src/bin/main.mbt test/test_src/ack.mbt
 
-# remote compiler test(仅仅打包Head提交)
-git archive -o submit.zip HEAD
-
 # local language debug
 moon run test_language/main.mbt
 
@@ -27,25 +24,14 @@ moon run src/bin/main.mbt -- --end-stage parse test/test_src/ack.mbt
 moon run src/bin/main.mbt -- --end-stage parse test/test_simple_src/expression.mbt
 moon run src/bin/main.mbt -- --end-stage parse test/test_simple_src/if_else.mbt
 
-# test cases(todo test all)(auto test on local machine)
-# AC
+# test cases(auto test all on local machine)
+# 语法解析
 moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/arith.mbt
-moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/ident.mbt
-moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/numbers.mbt
-moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/global_let.mbt
-moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/nested_fns.mbt
-moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/very_deep.mbt
-
-moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/_neg_ident.mbt
-moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/_neg_ident2.mbt
-moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/_neg_no_semicolon.mbt
-moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/_neg_top_level_not_aligned.mbt
-moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/_neg_main_no_paren.mbt
-
 
 # 类型检查
 moon run src/bin/main.mbt -- --end-stage typecheck test/test_cases/typing/arith.mbt
-moon run src/bin/main.mbt -- --end-stage typecheck test/test_cases/typing/untyped_inner_fn.mbt
-moon run src/bin/main.mbt -- --end-stage typecheck test/test_cases/typing/landins_knot.mbt
 
-moon run src/bin/main.mbt -- --end-stage typecheck test/test_cases/typing/_neg_self.mbt 
+# 快速测试&提交
+./test/scripts/faster_test.sh  test/test_cases/parsing/
+# remote compiler test(仅仅打包Head提交)
+git archive -o submit.zip HEAD

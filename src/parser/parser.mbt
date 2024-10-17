@@ -193,6 +193,7 @@ fn lparen_rparen_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, A
 
 fn block(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
     parser_context.is_top_level=false
+    parser_context.nested_nubmer+=1
     println("block: \{parser_context}")
     lbrace
     // lbrace.many().map(fn {_ => None})
@@ -204,7 +205,10 @@ fn block(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex
     .map(fn { (((_, stmts), _,),rbrace) => {
       println("消耗了： \{rbrace}")
       println("block内语法是 \{stmts}")
-      parser_context.is_top_level=true
+      parser_context.nested_nubmer-=1
+      if parser_context.nested_nubmer==0{
+        parser_context.is_top_level=true
+      }
       println(parser_context)
       stmts
     }})
@@ -235,11 +239,16 @@ fn statement() -> Parser[@types.Syntax] {
           println("第\{n}个解析器开始解析")
           ast= parser(tokens)
           println("ast: \{ast}")
-          n = n+1
           match ast{
-            None => println("none")
+            None => {
+              if n==parsers.length() && parser_context.is_top_level{
+                // 目前在block内部完全可能遇到所有解析器都无法解析，因为内部和外部模式匹配不同。
+                @util.die("无法解析\{tokens}")
+              }
+            }
             _ => break
           }
+          n += 1
         }
       }
       ast

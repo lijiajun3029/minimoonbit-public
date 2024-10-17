@@ -1,6 +1,7 @@
 // 词法解析的上下文
 pub struct ParserContext {
     mut is_top_level: Bool  // 假定不在block中即为顶级
+    mut nested_nubmer: Int  // 假定不在block中即为顶级
     // current_scope: Vec<String>, // 用于维护当前作用域的栈
     // defined_variables: HashMap<String, String>, // 变量名与类型的映射
     // defined_functions: HashMap<String, (Vec<String>, String)>, // 函数名与参数及返回类型的映射
@@ -17,4 +18,4 @@ pub struct ParserContext {
 } derive(Show)
 
 // pub let parser_context:ParserContext={is_top_level:true, token_length:0, is_main:false} // is_main初始化为false，在fn语句中出现问题！
-pub let parser_context:ParserContext={is_top_level:true, token_length:0, is_main:false}
+pub let parser_context:ParserContext={is_top_level:true, nested_nubmer:0, token_length:0, is_main:false}

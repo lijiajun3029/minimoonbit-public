@@ -103,14 +103,16 @@ fn CompileStatus::step(self : CompileStatus) -> Bool{
       println("end parse")
     }
     Typecheck => {
+      println("start typecheck")
       self.typechecked = self.ast
 
       // bug
       // match self.ast{
-      //     None => @util.die("")
-      //     _ => self.typechecked = @typing.typing!(self.ast)
+      //     None => @util.die("1")
+      //     Some(_) as ast => self.typechecked = @typing.typing!(ast)
       // }
       // self.typechecked = @typing.typing!(self.ast)
+      println("end typecheck")
     }
     Knf => {
       let knf = self.knf_env.to_knf(self.typechecked.unwrap())
