@@ -54,6 +54,7 @@ fn infer(ctx: LocalCtx, e: @types.Syntax) -> @types.Type!TyErr {
         }
         // 递归函数的类型推导
         LetRec({ name: (f, t), args:params, body:body }, rest) => {
+            println(rest)
             let env_with_f = ctx.add(f,t)
             let params_ty = params.map(fn{(_, t)=> t})
             let mut env_with_params = env_with_f
@@ -106,9 +107,21 @@ fn deref_term(syntax: @types.Syntax) -> @types.Syntax{
 }
 
 pub fn typing(ast : @types.Syntax) -> @types.Syntax!TyErr {
-    unify!(Unit, infer!(@immut/hashmap.T::new(), ast))
-    for ext_f, ext_t in extenv {
-    extenv[ext_f] = deref_type(ext_t)
+    match ast{
+      @types.Syntax::Seq(ast_array)=>{
+        println(ast_array)
+        for one_ast in ast_array{
+            println(one_ast)
+            unify!(Unit, infer!(@immut/hashmap.T::new(), one_ast))
+            for ext_f, ext_t in extenv {
+              extenv[ext_f] = deref_type(ext_t)
+            }
+            let tmp = deref_term(one_ast)
+        }
+        @types.Syntax::Unit
+      }
+      _ => {
+        @util.die("并非Seq")
+      }
     }
-    deref_term(ast)
 }

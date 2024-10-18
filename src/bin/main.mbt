@@ -39,6 +39,7 @@ struct CompileStatus {
   end_stage : Stages
   mut source_code : String?
   mut ast : @types.Syntax?
+  // mut ast : Array[@types.Syntax?] // todo
   mut typechecked : @types.Syntax?
   knf_env : @knf.KnfEnv
   mut knf : @knf.Knf?
@@ -83,7 +84,7 @@ fn CompileStatus::initialize(
 }
 
 /// Run the next stage of compilation. Returns true if the compilation is finished.
-fn CompileStatus::step(self : CompileStatus) -> Bool{
+fn CompileStatus::step(self : CompileStatus) -> Bool!@typing.TyErr{
   if self.curr_stage >= self.end_stage {
     return true
   }
@@ -101,17 +102,16 @@ fn CompileStatus::step(self : CompileStatus) -> Bool{
       // self.ast=[parsed]  // 可不可以返回一个Array[Syntax],如何返回一个Syntax
       println(self.ast)
       println("end parse")
+      // Some(self.ast)
     }
     Typecheck => {
-      println("start typecheck")
-      self.typechecked = self.ast
-
-      // bug
-      // match self.ast{
-      //     None => @util.die("1")
-      //     Some(_) as ast => self.typechecked = @typing.typing!(ast)
-      // }
-      // self.typechecked = @typing.typing!(self.ast)
+      println("start typecheck")      
+      match self.ast{
+          None => @util.die("语法解析为空")
+          Some(ast) => {
+            self.typechecked = Some(@typing.typing!(ast))
+          }
+      }
       println("end typecheck")
     }
     Knf => {
@@ -312,7 +312,12 @@ fn main {
   // Run stages
   while true {
     let stg = status.curr_stage
-    let stop = status.step()
+    let mut stop =false
+    try {
+       stop = status.step!()
+    }catch{
+        // @typing.TyErr(s) => println(s)
+    }
     if stages_to_print.contains(stg) {
       println("Stage: \{stg}")
       println(status.output(json.val))

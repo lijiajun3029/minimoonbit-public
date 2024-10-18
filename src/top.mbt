@@ -1,6 +1,7 @@
 // Syntax枚举用于构建表达式抽象语法树
 // 多语句问题：Let、LetRec、LetTuple最后一个参数用来支持连续语句。虽然不存在mut变量，因此赋值之后无法修改，但是数组内容可以重复更改，这意味着必须有一个Seq
-// 注意：返回的语法结构，本身就可以自行构建一个Array[Syntax]  ：)，但是Array[Syntax]和Syntax类型验证时又不同！头大！
+// 注意：返回的语法结构，本身就可以自行构建一个Array[Syntax]，但是Array[Syntax]和Syntax类型验证时不同，可以更改main.mbt中ast的类型标注。
+// 但是数组重复赋值语句出现在test_src而未出现test_cases,因此似乎也可以保持原有Syntax枚举类型设计。
 pub enum Syntax {
   Unit
   Bool(Bool) // Bool(true),Bool(false)
