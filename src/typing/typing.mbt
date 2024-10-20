@@ -207,6 +207,20 @@ fn infer(ctx: LocalCtx, e: @types.Syntax) -> @types.Type!TyErr {
             let args_ty = []
             for arg in args {
                 println("\{fun_name}函数调用的参数类型：\{arg}")
+                match arg{
+                  Var(var_name)=>{
+                    match fun_name{
+                      Var(fun_name_string)=>{
+                        if var_name==fun_name_string{
+                          @util.die("\{arg}自引用")
+                        }else{
+                          println("\{arg}没有自引用")
+                        }
+                      }
+                    }
+                  }
+                  _ => println("\{arg}没有自引用")
+                }
                 args_ty.push(infer!(tmp_ctx, arg))
             }
             println("更新之后的函数调用的参数类型：\{args_ty}")

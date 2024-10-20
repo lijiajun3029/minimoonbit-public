@@ -32,6 +32,7 @@ moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/arith.mbt
 moon run src/bin/main.mbt -- --end-stage typecheck test/test_cases/typing/arith.mbt
 
 # 快速测试&提交
-./test/scripts/faster_test.sh  test/test_cases/parsing/
+./test/scripts/faster_test.sh  test/test_cases/typing/
+./test/scripts/faster_test_all.sh
 # remote compiler test(仅仅打包Head提交)
 git archive -o submit.zip HEAD

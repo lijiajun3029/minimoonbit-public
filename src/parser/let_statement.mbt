@@ -15,8 +15,8 @@ fn let_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayV
   )
   .and(colon_skip.and(parse_type_skip))  // todo,skip2
   .and(assign)
-  .and(expression)  // 暂时仅支持expression
-  // .and(statements)
+  // .and(expression)  // 暂时仅支持expression
+  .and(statement())
   // .and(separator)
   // .and(statements) // 去掉连续语句
   .map(fn {
