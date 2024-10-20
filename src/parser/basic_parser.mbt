@@ -276,7 +276,7 @@ let fun_type_parser: Parser[@types.Type] =
       // }
       // println(param_types)
       println("测试fun")
-      @types.Type::Fun([@types.Type::Int], return_type)  // 构建函数类型
+      @types.Type::Fun([param_types], return_type)  // 构建函数类型
     }
   });
 

@@ -20,7 +20,7 @@ run_tests() {
             correct_cases=$((correct_cases + 1))
         else
             echo "$filename: RE"
-            if [[ "$filename" != neg* ]]; then
+            if [[ "$filename" == _neg* ]]; then
                 correct_cases=$((correct_cases + 1))
             fi
         fi
@@ -39,9 +39,10 @@ run_tests() {
 declare -A test_cases=(
     ["parse"]="test/test_cases/parsing"
     ["typecheck"]="test/test_cases/typing"
+    ["knf"]="test/test_cases/knf"
 )
 
-stages=("parse" "typecheck")
+stages=("parse" "typecheck" "knf")
 # 使用for循环遍历阶段和对应的路径
 for stage in "${stages[@]}"; do
     echo "$stage"

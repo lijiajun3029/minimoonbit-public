@@ -273,15 +273,18 @@ pub fn typing(ast : @types.Syntax) -> @types.Syntax!TyErr {
       // 匹配过滤Seq
       @types.Syntax::Seq(ast_array)=>{
         println("等待类型检查：\{ast_array}")
+        let new_ast_arry=[]
         for one_ast in ast_array{
-            println("\n开始类型检查：\{one_ast}")
+            println("\n类型检查前：\{one_ast}")
             unify!(Unit, infer!(ctx, one_ast))    // 默认每个独立的语句结束之后，返回类型为Unit
+            println("\n类型检查后：\{one_ast}")
             for ext_f, ext_t in extenv {
               extenv[ext_f] = deref_type(ext_t)
             }
             let tmp = deref_term(one_ast)
+            new_ast_arry.push(one_ast)
         }
-        @types.Syntax::Unit
+        @types.Syntax::Seq(new_ast_arry)
       }
       _ => {
         @util.die("并非Seq")

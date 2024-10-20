@@ -84,7 +84,7 @@ fn CompileStatus::initialize(
 }
 
 /// Run the next stage of compilation. Returns true if the compilation is finished.
-fn CompileStatus::step(self : CompileStatus) -> Bool!@typing.TyErr{
+fn CompileStatus::step(self : CompileStatus) -> Bool!{
   if self.curr_stage >= self.end_stage {
     return true
   }
@@ -106,7 +106,7 @@ fn CompileStatus::step(self : CompileStatus) -> Bool!@typing.TyErr{
       // Some(self.ast)
     }
     Typecheck => {
-      println("\n\nstart typecheck")      
+      println("\n\nstart typecheck")
       match self.ast{
           None => @util.die("语法解析为空")
           Some(ast) => {
@@ -117,8 +117,10 @@ fn CompileStatus::step(self : CompileStatus) -> Bool!@typing.TyErr{
       println("end typecheck")
     }
     Knf => {
-      let knf = self.knf_env.to_knf(self.typechecked.unwrap())
+      println("\n\nstart knf")
+      let knf = self.knf_env.to_knf!(self.typechecked.unwrap())
       self.knf = Some(knf)
+      println("end knf")
     }
     KnfOpt => {
       let knf = self.knf.unwrap()
