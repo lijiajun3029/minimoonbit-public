@@ -1,5 +1,6 @@
 fn dummy(i: Int) -> Int { i };
 
+// landins_kont是一个高阶函数，其接受一个函数(Int) -> Int，并返回一个函数(Int) -> Int
 fn landins_kont(f : ((Int) -> Int) -> (Int) -> Int) -> (Int) -> Int {
   let arr = Array::make(1, dummy);
   fn aux(x) { arr[0](x) };

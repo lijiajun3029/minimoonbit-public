@@ -99,10 +99,10 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
                 Identifier(_) => true
                 _ => false 
             }).map(fn {
-                Identifier(arg_name) =>{
+                Identifier(arg_name) => {
                    println("test order")
                    arg_name
-                   }
+                }
             })
             .and(colon_skip.and(parse_type_skip))
             // .and(ptoken_skip2(colon,parse_type))
@@ -117,10 +117,99 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
     )
     .and(
       // 可以缺省一次，必须一起跳过，此处存在bug，可以构造ptoken_skip2,内支持两个断言函数
-      ptoken_skip(fn {
-          Arrow => true
-          _ => false
-      }).and(colon_skip.and(parse_type_skip)  // todo typecheck
+      arrow_skip.and(colon_skip.and(parse_type_skip)  // todo typecheck
+      ).map(fn{
+        // 获得返回类型
+        (_,(_,return_type)) => return_type
+      })
+    )
+    .and(block)// 解析函数体
+    .and(semicolon)
+    .map(fn {
+        // ((((_,fun_name), ((_,array_params),_)),ty), body)
+        ((((((_,fun_name),_), ((array_params),_)),return_type), body),_)
+        => {
+          let params=[]
+          let params_type=[]
+          for param in array_params{
+            params.push(param.0)
+            params_type.push(param.0.1)
+          }
+          // body[0]
+          let fun_type=@types.Type::Fun(params_type,return_type)
+          // let fun_type=return_type
+          let fundef :@types.Fundef={name:(fun_name,fun_type), args:params, body:body}
+          @types.Syntax::LetRec(fundef, @types.Syntax::Unit)
+        }
+    })
+    .parse(tokens)
+}
+
+fn fn_fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+    ptoken(
+      fn {
+        Fn => {
+          parser_context.is_main=false
+          let curent_token_number=parser_context.token_length-tokens.length()
+          println("FN curent_token_number: \{curent_token_number}")
+          let {token_number,line,column_start,column_end}:@lex.TokenPosition = @lex.token_postion_array[curent_token_number]
+          println("FN column_start: \{column_start}")
+          if parser_context.is_top_level{
+            if column_start==1{
+              true
+            }else{
+              println("顶级未左对齐")
+              false
+            }
+          }else{
+            true
+          }
+        }
+        _ => {
+          println("not fn")
+          false
+          }
+      }
+    )
+    .and(
+      ptoken(
+        fn {
+        Fun_name(_) => {
+          println("fun_name: \{parser_context}")
+          true
+        }
+        _ => false
+      })
+      .map(fn {
+        Fun_name(fun_name)=> fun_name  // 中间解析,可以简化最终解析
+      })
+    )
+    .and(lparen)
+    .and(
+            // 解析参数列表，可以是空或一个或多个参数 todo：一个可选参数（可选类型）、many（一个必选逗号+一个参数（可选类型））、一个可选逗号。
+            ptoken(fn { 
+                Identifier(_) => true
+                _ => false 
+            }).map(fn {
+                Identifier(arg_name) => {
+                   println("test order")
+                   arg_name
+                }
+            })
+            .and(colon_skip.and(fun_fun_type_parser))
+            // .and(ptoken_skip2(colon,parse_type))
+            // 获得参数名和参数类型
+            .map(fn { ((arg_name), (_,arg_type)) => (arg_name,arg_type)})   // 参数类型,中间解析,可以简化最终解析
+            .and(
+                comma_skip
+            )
+            // .map(fn { (param, _) => param })
+            .many()
+        .and(rparen)
+    )
+    .and(
+      // 可以缺省一次，必须一起跳过，此处存在bug，可以构造ptoken_skip2,内支持两个断言函数
+      arrow_skip.and(colon_skip.and(fun_fun_type_parser)  // todo typecheck
       ).map(fn{
         // 获得返回类型
         (_,(_,return_type)) => return_type

@@ -224,6 +224,7 @@ fn statement() -> Parser[@types.Syntax] {
         let parsers = [
             fn_main_statement,
             fn_statement,
+            fn_fn_statement,
             let_statement,
             if_statement,
             expression,  // 表达式也是一种语句

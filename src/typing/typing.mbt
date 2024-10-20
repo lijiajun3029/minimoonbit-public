@@ -12,6 +12,7 @@ fn unify(t1: @types.Type, t2: @types.Type) -> Unit!TyErr {
   println("开始归一化：\{t1}和\{t2}")
   let t1 = t1.repr()
   let t2 = t2.repr()
+  println("找到类型变量所代表的实际类型：\{t1}和\{t2}")
   if physical_equal(t1, t2) { return }
   match (t1, t2) {
     (Int, Int) | (Bool, Bool) | (Unit, Unit) | (Double, Double) => ()
@@ -84,7 +85,8 @@ fn check_occur(tvar: @types.Type, ty: @types.Type) -> Unit!TyErr {
 // 类型推导
 fn infer(ctx: LocalCtx, e: @types.Syntax) -> @types.Type!TyErr {
     println("\n进入infer")
-    println("上下文：\{ctx}")
+    println("局部上下文：\{ctx}")
+    println("全局上下文：\{extenv}")
     println("语句：\{e}\n")
 
     match e {
@@ -119,7 +121,7 @@ fn infer(ctx: LocalCtx, e: @types.Syntax) -> @types.Type!TyErr {
         // 表达式
         Prim(syntax1,syntax2,_)=>{
             let type1=infer!(ctx,syntax1)
-            let type2=infer!(ctx,syntax1)
+            let type2=infer!(ctx,syntax2)
             unify!(type1,type2)
             type1
         }
@@ -157,19 +159,22 @@ fn infer(ctx: LocalCtx, e: @types.Syntax) -> @types.Type!TyErr {
                 }
               }
             }
+            // let params_ty1 = infer!(env_with_f,params_ty)
             unify!(fun_type, Fun(params_ty, syntax_type))
             // let body_ty = infer!(env_with_params, body)
             // unify!(fun_type, Fun(params_ty, body_ty))
             println(env_with_f)
             println(rest)
             // infer!(env_with_f, rest)
-            println("检查完毕：\{fun_type}")
+            println("函数定义检查完毕：\{fun_type}")
+            extenv[fun_name]=fun_type
             // 函数定义默认返回一个Unit吧:)
             @types.Type::Unit
         }
         // 调用函数的类型推导
         App(fun_name, args) => {
-            println("App上下文：\{ctx}")
+            println("App局部上下文：\{ctx}")
+            println("App全局上下文：\{extenv}")
             println("App的函数：\{fun_name}")
 
             // 推导出调用函数的类型
@@ -205,8 +210,11 @@ fn infer(ctx: LocalCtx, e: @types.Syntax) -> @types.Type!TyErr {
                 args_ty.push(infer!(tmp_ctx, arg))
             }
             println("更新之后的函数调用的参数类型：\{args_ty}")
-            unify!(f_ty, Fun(args_ty, new_tvar()))
-            @types.Type::Unit
+            let return_type=new_tvar()
+            unify!(f_ty, Fun(args_ty, return_type ))
+            println("\{fun_name}函数调用返回类型：\{return_type}")
+            println("函数调用结束\n")
+            return_type
         }
         // 处理其他语法的匹配
         // _ => unimplemented!() // 这里可以添加更多的处理逻辑

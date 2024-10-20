@@ -136,7 +136,12 @@ let assign : Parser[@lex.Token] = ptoken(fn {
 })
 
 let arrow : Parser[@lex.Token] = ptoken(fn {
-    Array => true
+    Arrow => true
+    _ => false
+})
+
+let arrow_skip : Parser[@lex.Token] = ptoken_skip(fn {
+    Arrow => true
     _ => false
 })
 
@@ -228,6 +233,7 @@ let parse_type : Parser[@types.Type] = ptoken(
     Double => @types.Type::Double
     // Tuple => @types.Type::Tuple(Array[Type])  // todo
     // todo
+    _ => @types.Type::Var({val:None})
     })
 
 let parse_type_skip : Parser[@types.Type] = ptoken_skip(
@@ -249,3 +255,49 @@ let parse_type_skip : Parser[@types.Type] = ptoken_skip(
     // todo
     _ => @types.Type::Var({val:None})
     })
+    
+// 参数是函数类型解析器，用于解析 (A) -> B 的形式
+let fun_type_parser: Parser[@types.Type] = 
+  lparen_skip  // 匹配左括号表示开始函数类型
+  .and(
+    parse_type_skip
+  )
+  .and(
+    rparen_skip  // 匹配右括号表示结束参数类型
+  )
+  .and(
+    arrow_skip  // 匹配箭头表示返回类型
+    .and(parse_type_skip)  // 递归解析返回类型
+    .map(fn { (_, return_type) => return_type })
+  )
+  .map(fn { (((_, param_types), _), return_type) => {
+      // for param_type in param_types{
+      //   @types.Type::Fun(param_type, return_type)  // 构建函数类型
+      // }
+      // println(param_types)
+      println("测试fun")
+      @types.Type::Fun([@types.Type::Int], return_type)  // 构建函数类型
+    }
+  });
+
+let fun_fun_type_parser: Parser[@types.Type] = 
+  lparen_skip  // 匹配左括号表示开始函数类型
+  .and(
+    fun_type_parser
+  )
+  .and(
+    rparen_skip  // 匹配右括号表示结束参数类型
+  )
+  .and(
+    arrow_skip  // 匹配箭头表示返回类型
+    .and(fun_type_parser) // 递归解析返回类型
+    .map(fn { (_, return_type) => return_type })
+  )
+  .map(fn { (((_, param_types), _), return_type) => {
+      // for param_type in param_types{
+      //   @types.Type::Fun(param_type, return_type)  // 构建函数类型
+      // }
+      println(param_types)
+      @types.Type::Fun([@types.Type::Int], return_type)  // 构建函数类型
+    }
+  });

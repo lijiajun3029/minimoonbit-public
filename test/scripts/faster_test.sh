@@ -10,8 +10,8 @@ for file in "$1"/*; do
     filename=$(basename "$file")
     moon run ./src/bin/main.mbt -- --end-stage typecheck $file >test/output/information.txt 2>test/output/error_log.txt
     if [ $? -eq 0 ]; then
-        echo "$filename :AC"
+        echo "$filename: AC"
     else
-        echo "$filename :RE"
+        echo "$filename: RE"
     fi
 done
