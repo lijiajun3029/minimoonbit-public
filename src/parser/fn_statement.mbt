@@ -40,7 +40,8 @@ fn fn_main_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, Ar
     .map(fn {
         (((_,fun_name),body),_)
         => {
-          let fundef :@types.Fundef={name:(fun_name,@types.Type::Unit), args:[], body:body}
+          let fun_type = @types.Type::Fun([],@types.Type::Unit)
+          let fundef :@types.Fundef={name:(fun_name, fun_type), args:[], body:body}
           @types.Syntax::LetRec(fundef, @types.Syntax::Unit)
         }
         // (_,body)=>{
@@ -132,11 +133,15 @@ fn fn_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
         ((((((_,fun_name),_), ((array_params),_)),return_type), body),_)
         => {
           let params=[]
+          let params_type=[]
           for param in array_params{
             params.push(param.0)
+            params_type.push(param.0.1)
           }
           // body[0]
-          let fundef :@types.Fundef={name:(fun_name,return_type), args:params, body:body}
+          let fun_type=@types.Type::Fun(params_type,return_type)
+          // let fun_type=return_type
+          let fundef :@types.Fundef={name:(fun_name,fun_type), args:params, body:body}
           @types.Syntax::LetRec(fundef, @types.Syntax::Unit)
         }
     })

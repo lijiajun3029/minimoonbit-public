@@ -90,6 +90,7 @@ fn CompileStatus::step(self : CompileStatus) -> Bool!@typing.TyErr{
   }
   match self.curr_stage {
     Parse => {
+      println("\n\nstart parse")
       let source_code = self.source_code.unwrap()
       println(source_code)
       let tokens = []
@@ -100,18 +101,19 @@ fn CompileStatus::step(self : CompileStatus) -> Bool!@typing.TyErr{
       self.ast =Some(parsed)
       // self.ast =parsed
       // self.ast=[parsed]  // 可不可以返回一个Array[Syntax],如何返回一个Syntax
-      println(self.ast)
+      println("生成ast：\{self.ast}")
       println("end parse")
       // Some(self.ast)
     }
     Typecheck => {
-      println("start typecheck")      
+      println("\n\nstart typecheck")      
       match self.ast{
           None => @util.die("语法解析为空")
           Some(ast) => {
             self.typechecked = Some(@typing.typing!(ast))
           }
       }
+      println("生成typechecked：\{self.typechecked}")
       println("end typecheck")
     }
     Knf => {

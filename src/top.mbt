@@ -7,7 +7,7 @@ pub enum Syntax {
   Bool(Bool) // Bool(true),Bool(false)
   Int(Int) // Int(1)
   Double(Double) // Double(1.1)
-  Var(String) // _
+  Var(String) // _    // 表示函数名和普通变量等标识符
   Tuple(Array[Syntax]) // Tuple(_, _, _)
   Not(Syntax) // not(_)
   Array(Syntax, Syntax) // Array::make(_, _)
@@ -38,7 +38,7 @@ pub enum Op {
 } derive(Show, Eq)
 
 pub struct Fundef {
-  name : (String, Type)
+  name : (String, Type)   // 此处可以未指明是返回值类型或Fun类型，但类型检查自引用案例时发现更适合是Fun类型
   args : Array[(String, Type)]
   body : Syntax
 } derive(Show)
@@ -53,7 +53,7 @@ pub enum Type {
   Array(Type) // Array[_]
   // Var(mut ~t: Type?)  // 定义可变类型变量
   Var(Ref[Type?]) // 等价于视频教程中的Var(mut ~t: Type?):VScode鼠标光标悬浮在其上即见真面目，Ref[A]是一个泛型结构体(此时传入具体的类型Type?)，而Var()是一个函数，函数名被定义为Var。
-  Ptr
+  Ptr // 指针
 } derive(Show)
 
 
