@@ -291,3 +291,4 @@ pub fn typing(ast : @types.Syntax) -> @types.Syntax!TyErr {
       }
     }
 }
+// todo 类型检查结果精简

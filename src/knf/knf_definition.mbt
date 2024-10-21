@@ -2,6 +2,7 @@ pub typealias Name = @types.Name
 
 pub typealias Type = @types.Type
 
+// Let、LetRec、LetTuple最后一个参数用来支持连续语句
 pub enum Knf {
   Unit
   Int(Int)
@@ -16,14 +17,14 @@ pub enum Knf {
   FSub(Name, Name)
   FMul(Name, Name)
   FDiv(Name, Name)
-  IfEq(Name, Name, Knf, Knf)
-  IfLe(Name, Name, Knf, Knf)
-  Let((Name, Type), Knf, Knf)
+  IfEq(Name, Name, Knf, Knf)  // 如果等于
+  IfLe(Name, Name, Knf, Knf)  // 如果小于等于
+  Let((Name, Type), Knf, Knf)   // 最后一个参数用来支持连续语句
   Var(Name)
-  LetRec(FuncDef, Knf)
+  LetRec(FuncDef, Knf)  // 最后一个参数用来支持连续语句
   Apply(Name, Array[Name])
   Tuple(Array[Name])
-  LetTuple(Array[(Name, Type)], Name, Knf)
+  LetTuple(Array[(Name, Type)], Name, Knf)  // 最后一个参数用来支持连续语句
   Get(Name, Name)
   Put(Name, Name, Name)
   ExternalArray(Name)
