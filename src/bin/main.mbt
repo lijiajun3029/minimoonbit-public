@@ -118,7 +118,7 @@ fn CompileStatus::step(self : CompileStatus) -> Bool!{
     }
     Knf => {
       println("\n\nstart knf")
-      let knf = self.knf_env.to_knf!(self.typechecked.unwrap())
+      let knf = self.knf_env.seq_to_knf!(self.typechecked.unwrap())
       self.knf = Some(knf)
       println("\{self.knf}")
       println("end knf")

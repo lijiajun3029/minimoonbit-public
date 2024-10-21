@@ -29,6 +29,7 @@ pub enum Knf {
   Put(Name, Name, Name)
   ExternalArray(Name)
   ExternalFunctionApplication(String, Array[Name])
+  Seq(Array[Knf])   // 饮鸩止渴
 } derive(Show, Eq)
 
 pub struct FuncDef {

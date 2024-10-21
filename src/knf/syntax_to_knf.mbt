@@ -82,12 +82,15 @@ pub fn KnfEnv::to_knf(self : KnfEnv, ast : @types.Syntax) -> Knf! { // !Failure
   }
 }
 
-fn KnfEnv::seq_to_knf(self : KnfEnv,ast : @types.Syntax) -> Knf! { 
+pub fn KnfEnv::seq_to_knf(self : KnfEnv, ast : @types.Syntax) -> Knf! {
+  let knf_array=[]
   match ast{
     Seq(ast_array)=>{
       for one_ast in ast_array{
         let knf=self.to_knf!(one_ast)
+        knf_array.push(knf)
       }
+      // Knf::Seq(knf_array)
       Knf::Unit
     }
     _ => Knf::Unit

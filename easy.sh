@@ -31,6 +31,9 @@ moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/arith.mbt
 # 类型检查
 moon run src/bin/main.mbt -- --end-stage typecheck test/test_cases/typing/arith.mbt
 
+# knf
+moon run src/bin/main.mbt -- --end-stage knf test/test_cases/knf/id.mbt
+
 # 快速测试&提交
 ./test/scripts/faster_test.sh  test/test_cases/typing/
 ./test/scripts/faster_test_all.sh
