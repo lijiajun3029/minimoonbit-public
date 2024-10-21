@@ -90,7 +90,7 @@ fn CompileStatus::step(self : CompileStatus) -> Bool!{
   }
   match self.curr_stage {
     Parse => {
-      println("\n\nstart parse")
+      println("\nstart parse")
       let source_code = self.source_code.unwrap()
       println(source_code)
       let tokens = []
@@ -102,7 +102,7 @@ fn CompileStatus::step(self : CompileStatus) -> Bool!{
       // self.ast =parsed
       // self.ast=[parsed]  // 可不可以返回一个Array[Syntax],如何返回一个Syntax
       println("生成ast：\{self.ast}")
-      println("end parse")
+      println("end parse\n")
       // Some(self.ast)
     }
     Typecheck => {
@@ -117,16 +117,18 @@ fn CompileStatus::step(self : CompileStatus) -> Bool!{
       println("end typecheck")
     }
     Knf => {
-      println("\n\nstart knf")
+      println("\nstart knf")
       let knf = self.knf_env.seq_to_knf!(self.typechecked.unwrap())
       self.knf = Some(knf)
       println("\{self.knf}")
-      println("end knf")
+      println("end knf\n")
     }
     KnfOpt => {
+      println("\nstart knf opt")
       let knf = self.knf.unwrap()
       // TODO: optimize
       self.opt_knf = Some(knf)
+      println("end knf opt\n")
     }
     Closure => {
       let closure_ir = @closure.knf_program_to_closure(
@@ -178,7 +180,6 @@ fn main {
   // Testing directives
   let json = Ref::new(false)
   let start_stage = Ref::new(Stages::Parse)
-  // let start_stage = Ref::new(Stages::Typecheck)  // test
   let end_stage = Ref::new(Stages::Finished)
   let knf_interpreter = Ref::new(false)
   let closure_interpreter = Ref::new(false)
@@ -322,6 +323,7 @@ fn main {
        stop = status.step!()
     }catch{
         // @typing.TyErr(s) => println(s)
+        _ => @util.die("捕获阶段异常")
     }
     if stages_to_print.contains(stg) {
       println("Stage: \{stg}")
@@ -334,11 +336,13 @@ fn main {
 
   // Output
   if knf_interpreter.val {
+    println("开始knf interpreter val")
     let knfi = @knf_eval.KnfInterpreter::new()
     add_interpreter_fns(knfi)
     match knfi.eval_full?(status.knf.unwrap()) {
       Ok(_) => ()
       Err(Failure(e)) => {
+        println("捕获knf异常")
         println(e)
         @util.die("KNF interpreter error")
       }
