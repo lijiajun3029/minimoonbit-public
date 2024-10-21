@@ -55,17 +55,25 @@ pub fn KnfEnv::to_knf(self : KnfEnv, ast : @types.Syntax) -> Knf! { // !Failure
       )
     }
     
-    Let((name_str,name_type), expr, cont) =>{
-      // let name = <value> in
-      // <body>
-      // Knf::Let(name, to_knf(env, value), to_knf(env, body))
+    Let((name_str,name_type), expr, Unit) =>{
       Knf::Let(
-        (Name::from_string!(name_str),name_type), 
+        (Name::name_only(name_str),name_type), 
         self.to_knf!(expr),
-        self.to_knf!(cont)
+        self.to_knf!(Unit)
       )
       }
-
+    LetRec({name:(fun_name,fun_type), args:params, body:body}, Unit) =>{
+        let new_params=[]
+        for index, arg_arg_type in params{
+          new_params.push((Name::name_only(arg_arg_type.0),arg_arg_type.1))
+          println(index)
+        }
+        println("body: \{body}")
+        Knf::LetRec(
+          {name:Name::name_only(fun_name), ty:fun_type, args:new_params, body:self.to_knf!(body)}, 
+          self.to_knf!(Unit)
+        )
+    }
     If(cond, then, els) => {
       let cond_name = self.new_temp()
 
@@ -78,6 +86,12 @@ pub fn KnfEnv::to_knf(self : KnfEnv, ast : @types.Syntax) -> Knf! { // !Failure
       // )
       Knf::Unit
     }
+    Seq(ast_array)=>{
+      for ast in ast_array{
+        let knf= self.to_knf!(ast)  
+      }
+      Knf::Unit
+    }
     _ => Knf::Unit
   }
 }
@@ -88,10 +102,11 @@ pub fn KnfEnv::seq_to_knf(self : KnfEnv, ast : @types.Syntax) -> Knf! {
     Seq(ast_array)=>{
       for one_ast in ast_array{
         let knf=self.to_knf!(one_ast)
+        println(knf)
         knf_array.push(knf)
       }
-      // Knf::Seq(knf_array)
-      Knf::Unit
+      Knf::Seq(knf_array)
+      // Knf::Unit
     }
     _ => Knf::Unit
   }
