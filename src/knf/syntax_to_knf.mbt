@@ -33,7 +33,7 @@ pub fn KnfEnv::to_knf(self : KnfEnv, ast : @types.Syntax) -> Knf! { // !Failure
   match ast {
     // Trivial cases
     Var(name) => {
-      Knf::Var(Name::from_string!(name))
+      Knf::Var(Name::name_only(name))
       }
     Int(i) => Knf::Int(i)
     Prim(a, b, op, ..) => { // 如何获得kind
@@ -54,14 +54,13 @@ pub fn KnfEnv::to_knf(self : KnfEnv, ast : @types.Syntax) -> Knf! { // !Failure
             )
       )
     }
-    
     Let((name_str,name_type), expr, Unit) =>{
       Knf::Let(
         (Name::name_only(name_str),name_type), 
         self.to_knf!(expr),
         self.to_knf!(Unit)
       )
-      }
+    }
     LetRec({name:(fun_name,fun_type), args:params, body:body}, Unit) =>{
         let new_params=[]
         for index, arg_arg_type in params{
@@ -73,6 +72,15 @@ pub fn KnfEnv::to_knf(self : KnfEnv, ast : @types.Syntax) -> Knf! { // !Failure
           {name:Name::name_only(fun_name), ty:fun_type, args:new_params, body:self.to_knf!(body)}, 
           self.to_knf!(Unit)
         )
+    }
+    App(fun_name,array_params)=>{
+      let fun_name_Name = Name::name_only(self.to_knf!(fun_name).to_string())
+      let array_params_Name=[]
+      for param in array_params{
+        array_params_Name.push(Name::name_only(self.to_knf!(param).to_string()))
+      }
+      Knf::Apply(fun_name_Name,array_params_Name)
+
     }
     If(cond, then, els) => {
       let cond_name = self.new_temp()
@@ -87,10 +95,12 @@ pub fn KnfEnv::to_knf(self : KnfEnv, ast : @types.Syntax) -> Knf! { // !Failure
       Knf::Unit
     }
     Seq(ast_array)=>{
+      let new_ast_array=[]
       for ast in ast_array{
-        let knf= self.to_knf!(ast)  
+        let knf= self.to_knf!(ast)
+        new_ast_array.push(knf)
       }
-      Knf::Unit
+      Knf::Seq(new_ast_array)
     }
     _ => Knf::Unit
   }

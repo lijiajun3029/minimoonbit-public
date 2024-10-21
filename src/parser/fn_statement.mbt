@@ -255,7 +255,6 @@ fn call_fn_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
 
     .and(rparen)
     .map(fn {  (((fun_name,_),array_params),_) => {
-      println("test")
       @types.Syntax::App(fun_name,array_params)
     }})
     .parse(tokens)
