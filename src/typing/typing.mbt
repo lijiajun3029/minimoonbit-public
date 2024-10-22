@@ -119,7 +119,7 @@ fn infer(ctx: LocalCtx, e: @types.Syntax) -> @types.Type!TyErr {
             }
         }
         // 表达式
-        Prim(syntax1,syntax2,_)=>{
+        Prim(syntax1,syntax2,_)=>{  // todo check kind?
             let type1=infer!(ctx,syntax1)
             let type2=infer!(ctx,syntax2)
             unify!(type1,type2)

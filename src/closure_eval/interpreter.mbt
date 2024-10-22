@@ -50,7 +50,9 @@ pub fn ClosureInterpreter::eval_full(
   self : ClosureInterpreter,
   expr : @closure.Program
 ) -> Value!Failure {
+  println("expr in eval full: \{expr}")
   for f in expr.fundefs {
+    println("f in eval full: \{f}")
     self.functions.set(f.name._, f)
   }
   let env = InterpreterLocalVars::new()

@@ -271,9 +271,10 @@ pub fn KnfInterpreter::eval(
     }
     Seq(knf_array) => {
       for knf in knf_array{
-       let tmp= self.eval!(env,knf)
-       println("\{knf}\tvalue: \{tmp}")
+        let tmp= self.eval!(env, knf)
+        println("\{knf}\tvalue: \{tmp}")
       }
+      println(1001)
       Unit
     }
   }

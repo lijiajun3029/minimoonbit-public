@@ -283,6 +283,7 @@ fn main {
 
   // Configure pipeline
   if knf_interpreter.val {
+    // 执行knf_interpreter（包含knf）
     end_stage.val = Stages::Knf
   }
   if closure_interpreter.val {
@@ -336,17 +337,17 @@ fn main {
 
   // Output
   if knf_interpreter.val {
-    println("开始knf interpreter val")
+    println("\nstart knf interpreter val")
     let knfi = @knf_eval.KnfInterpreter::new()
     add_interpreter_fns(knfi)
     match knfi.eval_full?(status.knf.unwrap()) {
       Ok(_) => ()
       Err(Failure(e)) => {
-        println("捕获knf异常")
         println(e)
         @util.die("KNF interpreter error")
       }
     }
+    println("end knf interpreter val\n")
   } else if closure_interpreter.val {
     let clsi = @closure_eval.ClosureInterpreter::new()
     add_closure_interpreter_fns(clsi)

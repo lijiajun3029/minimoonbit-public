@@ -32,8 +32,8 @@ moon run src/bin/main.mbt -- --end-stage parse test/test_cases/parsing/arith.mbt
 moon run src/bin/main.mbt -- --end-stage typecheck test/test_cases/typing/arith.mbt
 
 # knf
-moon run src/bin/main.mbt -- test/test_cases/knf/id.mbt --knf-interpreter
-
+moon run src/bin/main.mbt -- --knf-interpreter test/test_cases/knf/id.mbt 
+# 等效于 moonrun target/wasm-gc/release/build/bin/bin.wasm -- --knf-interpreter test/test_cases/knf/id.mb
 # 快速测试&提交
 ./test/scripts/faster_test.sh  test/test_cases/typing/
 ./test/scripts/faster_test_all.sh
