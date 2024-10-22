@@ -43,6 +43,13 @@ pub fn KnfInterpreter::add_extern_fn(
   self.init_env = self.init_env.add(Name::name_only(name), ExternFn(name))
 }
 
+fn print_int(args:Array[Value])->Value{
+  for arg in args{
+    println(arg)
+  }
+  Unit
+}
+// 检索解释器本地变量
 fn find(env : InterpreterLocalVars, name : Name) -> Value!Failure {
   env.find(name).or_error!(Failure("variable not found: \{name}"))
 }
@@ -51,6 +58,7 @@ pub fn KnfInterpreter::eval_full(
   self : KnfInterpreter,
   expr : @knf.Knf
 ) -> Value!Failure {
+  self.add_extern_fn("print_int",print_int)
   self.eval!(self.init_env, expr)
 }
 
@@ -186,13 +194,31 @@ pub fn KnfInterpreter::eval(
       self.eval!(new_env, e2)
     }
     LetRec(f, e) => {
-      let f_env = Ref::new(env)
-      let new_env = env.add(f.name, Closure(f, f_env))
-      f_env.val = new_env
-      self.eval!(new_env, e)
+      println("提示：LetRec: f=\{f}; e=\{e}")
+      if f.name.name==Some("main"){
+          println("主函数需要执行")
+          match f.body{
+            Seq(knf_array)=>{
+              for knf in knf_array{
+                let tmp = self.eval!(env,knf)
+                println(tmp)
+              }
+              Unit
+            }
+            _ => Unit
+          }
+      }else{
+        let f_env = Ref::new(env)
+        let new_env = env.add(f.name, Closure(f, f_env))
+        f_env.val = new_env
+        self.eval!(new_env, e)
+      }
     }
     Apply(f, xs) => {
+      println("提示：Apply: f=\{f}; xs=\{xs}")
+      println(env)
       let f = find!(env, f)
+      println(f)
       match f {
         Closure(f, f_env) => {
           let mut new_env = f_env.val
@@ -274,7 +300,6 @@ pub fn KnfInterpreter::eval(
         let tmp= self.eval!(env, knf)
         println("\{knf}\tvalue: \{tmp}")
       }
-      println(1001)
       Unit
     }
   }
