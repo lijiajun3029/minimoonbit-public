@@ -3,5 +3,6 @@ pub fn KnfEnv::syntax_preprocess(
   self : KnfEnv,
   s : @types.Syntax
 ) -> @types.Syntax {
-  abort("todo")
+  // print(self.externals)
+  s
 }

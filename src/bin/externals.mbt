@@ -1,5 +1,15 @@
 fn add_interpreter_fns(interpreter : @knf_eval.KnfInterpreter) -> Unit {
   interpreter.add_extern_fn(
+    "print_int",
+    fn(args) {
+      match args[0] {
+        Int(i) => @io.print(i)
+        _ => @util.die("print_int expects Int")
+      }
+      Unit
+    },
+  )
+  interpreter.add_extern_fn(
     "minimbt_print_int",
     fn(args) {
       match args[0] {

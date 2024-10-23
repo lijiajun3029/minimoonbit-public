@@ -107,18 +107,14 @@ fn CompileStatus::step(self : CompileStatus) -> Bool!{
     }
     Typecheck => {
       println("\n\nstart typecheck")
-      match self.ast{
-          None => @util.die("语法解析为空")
-          Some(ast) => {
-            self.typechecked = Some(@typing.typing!(ast))
-          }
-      }
+      self.typechecked = Some(@typing.typing!(self.ast.unwrap()))
       println("生成typechecked：\{self.typechecked}")
       println("end typecheck")
     }
     Knf => {
       println("\nstart knf")
-      let knf = self.knf_env.seq_to_knf!(self.typechecked.unwrap())
+      let knf0 = self.knf_env.syntax_preprocess(self.typechecked.unwrap())
+      let knf = self.knf_env.seq_to_knf!(knf0)
       self.knf = Some(knf)
       println("\{self.knf}")
       println("end knf\n")
@@ -339,6 +335,7 @@ fn main {
   if knf_interpreter.val {
     println("\nstart knf interpreter val")
     let knfi = @knf_eval.KnfInterpreter::new()
+    // 添加解释器函数
     add_interpreter_fns(knfi)
     match knfi.eval_full?(status.knf.unwrap()) {
       Ok(_) => ()

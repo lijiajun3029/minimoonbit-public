@@ -43,12 +43,6 @@ pub fn KnfInterpreter::add_extern_fn(
   self.init_env = self.init_env.add(Name::name_only(name), ExternFn(name))
 }
 
-fn print_int(args:Array[Value])->Value{
-  for arg in args{
-    println(arg)
-  }
-  Unit
-}
 // 检索解释器本地变量
 fn find(env : InterpreterLocalVars, name : Name) -> Value!Failure {
   env.find(name).or_error!(Failure("variable not found: \{name}"))
@@ -58,7 +52,6 @@ pub fn KnfInterpreter::eval_full(
   self : KnfInterpreter,
   expr : @knf.Knf
 ) -> Value!Failure {
-  self.add_extern_fn("print_int",print_int)
   self.eval!(self.init_env, expr)
 }
 
@@ -200,8 +193,8 @@ pub fn KnfInterpreter::eval(
           match f.body{
             Seq(knf_array)=>{
               for knf in knf_array{
-                let tmp = self.eval!(env,knf)
-                println(tmp)
+                let tmp = self.eval!(env, knf)
+                println("提示：tmp = \{tmp}")
               }
               Unit
             }
@@ -210,15 +203,16 @@ pub fn KnfInterpreter::eval(
       }else{
         let f_env = Ref::new(env)
         let new_env = env.add(f.name, Closure(f, f_env))
+        println("提示：new_env = \{new_env}")
         f_env.val = new_env
         self.eval!(new_env, e)
       }
     }
     Apply(f, xs) => {
       println("提示：Apply: f=\{f}; xs=\{xs}")
-      println(env)
+      println("提示：env = \{env}")
+      println("提示：f = \{f}")
       let f = find!(env, f)
-      println(f)
       match f {
         Closure(f, f_env) => {
           let mut new_env = f_env.val
@@ -286,6 +280,7 @@ pub fn KnfInterpreter::eval(
     }
     ExternalArray(_) => fail!("ExternalArray is not supported")
     ExternalFunctionApplication(name, args) => {
+      println(self.init_env)
       let f = self.extern_fns
         .get(name)
         .or_error!(Failure("extern fn not found \{name}"))

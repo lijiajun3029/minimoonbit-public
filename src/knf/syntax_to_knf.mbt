@@ -32,10 +32,13 @@ pub fn KnfEnv::to_knf(self : KnfEnv, ast : @types.Syntax) -> Knf! { // !Failure
   println("to_knf: \{ast}")
   match ast {
     // Trivial cases
+    Unit => Unit
+    Int(i) => Int(i)
+    Double(i) => Double(i)
     Var(name) => {
       Knf::Var(Name::name_only(name))
-      }
-    Int(i) => Knf::Int(i)
+    }
+    
     Prim(a, b, op, ..) => { // 如何获得kind
       let a_name = self.new_temp()
       let b_name = self.new_temp()
@@ -73,14 +76,23 @@ pub fn KnfEnv::to_knf(self : KnfEnv, ast : @types.Syntax) -> Knf! { // !Failure
           self.to_knf!(Unit)
         )
     }
-    App(fun_name,array_params)=>{
-      let fun_name_Name = Name::name_only(self.to_knf!(fun_name).to_string())
+    App(fun_name,array_params) => {
       let array_params_Name=[]
       for param in array_params{
         array_params_Name.push(Name::name_only(self.to_knf!(param).to_string()))
       }
-      Knf::Apply(fun_name_Name,array_params_Name)
-
+      match fun_name{
+        Var(fun_name_str) => {
+          let fun_name_Name = Name::name_only(fun_name_str)
+          println("fun_name_Name = \{fun_name_Name}")
+          if self.externals.find(fun_name_str)!=None{
+            ExternalFunctionApplication(fun_name_str,array_params_Name)
+          }else{
+            Apply(fun_name_Name, array_params_Name)
+          }
+        }
+        _ => @util.die("函数名竟然不是Var类型")
+      }
     }
     If(cond, then, els) => {
       let cond_name = self.new_temp()

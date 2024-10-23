@@ -262,13 +262,12 @@ fn deref_term(syntax: @types.Syntax) -> @types.Syntax{
 
 // 类型推导的上下文
 // 全局的表:记录外部函数的类型
-pub let extenv : Map[String, @types.Type]={"print_int":Fun([Int],Unit)}
+pub let extenv : Map[String, @types.Type]={"print_int": Fun([Int],Unit)}    // todo: 在bin/externals.mbt文件中已经定义但是类型容器不同，待同步。
 // 局部的表:记录函数内部的变量和局部函数的类型，（嵌套作用域采用不可变数据结构，避免变量和局部函数的参数因命名相同而发生干涉。）
 // type LocalCtx @immut/hashmap.T[String,@types.Type]
 typealias LocalCtx = @immut/hashmap.T[String, @types.Type]   // 为某类型起别名
 pub fn typing(ast : @types.Syntax) -> @types.Syntax!TyErr {
     let ctx = LocalCtx::new()
-    // let ctx = LocalCtx::new().add("print_int",@types.Type::Unit)
     match ast{
       // 匹配过滤Seq
       @types.Syntax::Seq(ast_array)=>{
