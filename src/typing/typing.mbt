@@ -204,6 +204,7 @@ fn infer(ctx: LocalCtx, e: @types.Syntax) -> @types.Type!TyErr {
             }
             println("更新之后的函数定义的类型：\{f_ty}\n")
 
+            // 判断有没有自引用
             let args_ty = []
             for arg in args {
                 println("\{fun_name}函数调用的参数类型：\{arg}")

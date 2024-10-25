@@ -25,8 +25,8 @@ pub enum Knf {
   Apply(Name, Array[Name])
   Tuple(Array[Name])
   LetTuple(Array[(Name, Type)], Name, Knf)  // 最后一个参数用来支持连续语句
-  Get(Name, Name)
-  Put(Name, Name, Name)
+  Get(Name, Name)         // 数组
+  Put(Name, Name, Name)   // 数组
   ExternalArray(Name)
   ExternalFunctionApplication(String, Array[Name])
   Seq(Array[Knf])   // 饮鸩止渴

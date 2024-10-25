@@ -116,7 +116,7 @@ fn CompileStatus::step(self : CompileStatus) -> Bool!{
       let knf0 = self.knf_env.syntax_preprocess(self.typechecked.unwrap())
       let knf = self.knf_env.seq_to_knf!(knf0)
       self.knf = Some(knf)
-      println("\{self.knf}")
+      println("self.knf: \{self.knf}")
       println("end knf\n")
     }
     KnfOpt => {
@@ -338,7 +338,10 @@ fn main {
     // 添加解释器函数
     add_interpreter_fns(knfi)
     match knfi.eval_full?(status.knf.unwrap()) {
-      Ok(_) => ()
+      Ok(knf_eval) => {
+        println("knf评估结果：")
+        println(knf_eval)
+        }
       Err(Failure(e)) => {
         println(e)
         @util.die("KNF interpreter error")

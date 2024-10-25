@@ -7,6 +7,10 @@ pub typealias Name = @types.Name
 
 pub typealias InterpreterLocalVars = @immut/hashmap.T[Name, Value]
 
+// 自定义清除日志函数
+fn println(s:String) -> Unit{
+  ()
+}
 pub enum Value {
   Unit
   Int(Int)
@@ -14,7 +18,7 @@ pub enum Value {
   Tuple(Array[Value])
   Array(Array[Value])
   ExternFn(String)
-  Closure(@knf.FuncDef, Ref[InterpreterLocalVars])
+  Closure(@knf.FuncDef, Ref[InterpreterLocalVars])  // 闭包，保留本地变量
 } derive(Show)
 
 pub fn Value::op_equal(self : Value, other : Value) -> Bool {
@@ -60,6 +64,7 @@ pub fn KnfInterpreter::eval(
   env : InterpreterLocalVars,
   expr : @knf.Knf
 ) -> Value!Failure {
+  // let mut all_env=env
   match expr {
     Unit => Unit
     Int(i) => Int(i)
@@ -73,8 +78,10 @@ pub fn KnfInterpreter::eval(
       }
     }
     Add(x, y) => {
+      println("Add: \{x} \{y}")
       let x = find!(env, x)
       let y = find!(env, y)
+      println("Add: \{x} \{y}")
       match (x, y) {
         (Int(x), Int(y)) => Int(x + y)
         _ => fail!("type mismatch, add expects Int")
@@ -182,44 +189,53 @@ pub fn KnfInterpreter::eval(
       }
     }
     Let((x, _), e1, e2) => {
+      println("提示: Let: \{x}")
       let v = self.eval!(env, e1)
       let new_env = env.add(x, v)
-      self.eval!(new_env, e2)
+      // self.eval!(new_env, e2)
+      match e2{
+        Unit => v
+        _ => self.eval!(new_env, e2)
+      }
     }
     LetRec(f, e) => {
       println("提示：LetRec: f=\{f}; e=\{e}")
-      if f.name.name==Some("main"){
-          println("主函数需要执行")
-          match f.body{
-            Seq(knf_array)=>{
-              for knf in knf_array{
-                let tmp = self.eval!(env, knf)
-                println("提示：tmp = \{tmp}")
-              }
-              Unit
-            }
-            _ => Unit
-          }
-      }else{
-        let f_env = Ref::new(env)
-        let new_env = env.add(f.name, Closure(f, f_env))
-        println("提示：new_env = \{new_env}")
-        f_env.val = new_env
-        self.eval!(new_env, e)
-      }
+      // 由于我们没有使用连续语句，添加的函数定义会丢失
+      let f_env = Ref::new(env)
+      // println("test1")
+      // let new_env = env.add(f.name, Closure(f, f_env))
+      // println("test2")
+      // f_env.val = new_env // 此处易无限递归溢出
+      // println("提示：new_env = \{new_env}")
+      
+      // 添加到全局外部函数，饮鸩止渴
+      // self.add_extern_fn(f.name.to_string(), ExternFn())
+      // all_env = new_env
+
+      // self.eval!(new_env, e)
+
+      // 如果使用全局变量
+      // Unit
+      Closure(f, f_env)
+      
     }
     Apply(f, xs) => {
       println("提示：Apply: f=\{f}; xs=\{xs}")
       println("提示：env = \{env}")
       println("提示：f = \{f}")
       let f = find!(env, f)
+      println("提示：f = \{f}")
       match f {
         Closure(f, f_env) => {
           let mut new_env = f_env.val
           for i = 0; i < f.args.length(); i = i + 1 {
             let (x, _) = f.args[i]
+            println("提示：x：\{x}")
+            println("提示：xs[i]：\{xs[i]}")
             new_env = new_env.add(x, find!(env, xs[i]))
+            println("提示：new_env = \{new_env}")
           }
+          println("提示：new_env = \{new_env}")
           self.eval!(new_env, f.body)
         }
         ExternFn(name) => {
@@ -280,22 +296,55 @@ pub fn KnfInterpreter::eval(
     }
     ExternalArray(_) => fail!("ExternalArray is not supported")
     ExternalFunctionApplication(name, args) => {
-      println(self.init_env)
+      println("提示：ExternalFunctionApplication：\{name}")
       let f = self.extern_fns
         .get(name)
         .or_error!(Failure("extern fn not found \{name}"))
       let argv = []
       for x in args {
+        // let x_= self.eval!(env,x)
         argv.push(find!(env, x))
       }
       f(argv)
     }
     Seq(knf_array) => {
+      // 评估入口, 但是body也会再次进入
+      let mut current_env = env; // 保存当前的环境
+      let mut result = Unit
       for knf in knf_array{
-        let tmp= self.eval!(env, knf)
-        println("\{knf}\tvalue: \{tmp}")
+        // println("\n重置的评估环境env：\{env}")
+        // let result= self.eval!(env, knf)
+        
+        // println("\n重置的评估环境all_env：\{all_env}")
+        // let tmp= self.eval!(all_env, knf)
+        
+
+        // 更新本地环境
+        result= self.eval!(current_env, knf)
+        println("更新前：\{current_env}")
+        current_env = self.update_env(current_env, knf, result); // 更新环境
+        println("更新后：\{current_env}")
+
+        println("knf: \{knf} 's value: \{result}")
       }
-      Unit
+      result
     }
+  }
+}
+
+fn KnfInterpreter::update_env(
+  self : KnfInterpreter,
+  env: InterpreterLocalVars,
+  knf: @knf.Knf,
+  result: Value
+) -> InterpreterLocalVars {
+  match knf {
+    Let((x, _), _, _) => {
+      env.add(x, result) // 更新环境中的本地变量
+    }
+    LetRec(f, _) => {
+      env.add(f.name, result) // 更新环境中的递归函数
+    }
+    _ => env // 其他情况保持环境不变
   }
 }

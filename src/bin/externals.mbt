@@ -2,8 +2,14 @@ fn add_interpreter_fns(interpreter : @knf_eval.KnfInterpreter) -> Unit {
   interpreter.add_extern_fn(
     "print_int",
     fn(args) {
+      
       match args[0] {
-        Int(i) => @io.print(i)
+        Int(i) => {
+            println("开始打印值:\{i}")
+            @io.print(i)
+            println(" ")
+        }
+          
         _ => @util.die("print_int expects Int")
       }
       Unit
