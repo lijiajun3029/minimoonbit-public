@@ -339,15 +339,16 @@ fn main {
     add_interpreter_fns(knfi)
     match knfi.eval_full?(status.knf.unwrap()) {
       Ok(knf_eval) => {
-        println("knf评估结果：")
-        println(knf_eval)
+        // println("knf评估结果：")
+        // println(knf_eval)
+        ()
         }
       Err(Failure(e)) => {
         println(e)
         @util.die("KNF interpreter error")
       }
     }
-    println("end knf interpreter val\n")
+    // println("end knf interpreter val\n")
   } else if closure_interpreter.val {
     let clsi = @closure_eval.ClosureInterpreter::new()
     add_closure_interpreter_fns(clsi)
