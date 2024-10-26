@@ -1,4 +1,5 @@
 // 返回一个词法单元解析器函数
+// 每次ptoken*最多产生一个skip，因此进行一次skip过滤即可
 fn ptoken(predicate : (@lex.Token) -> Bool) -> Parser[@lex.Token] {
   // 必须要有
   // 直接返回一个函数作为Parser[@lex.Token]
@@ -20,12 +21,20 @@ fn ptoken_skip(predicate : (@lex.Token) -> Bool) -> Parser[@lex.Token] {
   // 直接返回一个函数作为Parser[@lex.Token];跳过失败，并不消耗token
   fn {  // 省略参数
     [hd, .. as tl] as all=> {
-      if predicate(hd) {
-        Some((hd, tl)) 
-      } else {
-        // println("ptoken_skip \{all}")
-        // None
-        Some((@lex.Token::Skip,all))
+      if hd==@lex.Token::Skip{
+        if predicate(tl[0]) {
+          Some((tl[0], tl[1:])) 
+        } else {
+          Some((@lex.Token::Skip,tl))
+        }
+      }else{
+        if predicate(hd) {
+          Some((hd, tl)) 
+        } else {
+          // println("ptoken_skip \{all}")
+          // None
+          Some((@lex.Token::Skip,all))
+        }
       }
     }
     [] => None
@@ -70,5 +79,22 @@ fn ptoken_not(predicate : (@lex.Token) -> Bool) -> Parser[@lex.Token] {
       println("test test")
       None
     }
+  }
+}
+
+
+fn ptoken_detect(predicate : (@lex.Token) -> Bool) -> Parser[@lex.Token] {
+  // 必须要有,只检测不消耗，否则返回None
+  // 直接返回一个函数作为Parser[@lex.Token]
+  fn {  // 省略参数
+    [hd, .. as tl] as all=> 
+    {
+      if hd==@lex.Token::Skip{
+        if predicate(tl[0]) { Some((@lex.Token::Skip, tl)) } else { None }
+      }else{
+        if predicate(hd) { Some((@lex.Token::Skip, all)) } else { None }
+      }
+    }
+    [] => None
   }
 }

@@ -35,7 +35,8 @@ pub fn KnfEnv::syntax_preprocess(
     }
     _ => @util.die("竟然没有Seq😀")
   }
-  println("提取init和main函数内容到顶层：\{@types.Syntax::Seq(init_array + main_array + other_ast_array)}")
+  // println("将init和main函数内容提取到顶层：\{@types.Syntax::Seq(init_array + main_array + other_ast_array)}")
   // Seq(init_array + main_array + other_ast_array)
+  println("将init和main函数内容提取到顶层：\{@types.Syntax::Seq(all_ast_array)}")
   Seq(all_ast_array)
 }

@@ -1,6 +1,5 @@
 // 语法解析
 
-
 // 解析操作符并映射到 Op 枚举
 fn map_op(token: @lex.Token) -> Option[@types.Op] {
   match token {
@@ -151,26 +150,6 @@ fn zero_one[Value : Show](self : Parser[Value]) -> Parser[Array[Value]] {
 fn Parser::ref[Value](ref : Ref[Parser[Value]]) -> Parser[Value] {
   fn(input) { ref.val.parse(input) }
 }
-  
-// if语句解析器
-fn if_statement(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
-    ptoken(fn {
-        @lex.Token::If => true
-        _ => false
-    })
-    .and(expression) // 解析条件表达式
-    // .and(statements) // 解析多语句
-    .and(block)      // 解析 then 分支
-    .and(ptoken(fn {
-        @lex.Token::Else => true
-        _ => false
-    }))
-    .and(block)      // 解析 else 分支
-    .map(fn {
-        ((((_, condition), then_branch), _,),else_branch) => @types.Syntax::If(condition, then_branch, else_branch)
-    })
-    .parse(tokens)
-}
 
 // ()
 fn lparen_rparen_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
@@ -202,6 +181,7 @@ fn block(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex
     .and(statements) // 解析多个语句
     .and(separator.many())
     .and(rbrace)
+    // .and(rbrace_skip)
     .map(fn { (((_, stmts), _,),rbrace) => {
       println("消耗了： \{rbrace}")
       println("block内语法是 \{stmts}")
@@ -215,41 +195,54 @@ fn block(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex
     .parse(tokens)
 }
 
+fn block_end(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
+    rbrace_detect.and(semicolon_detect).map(fn{
+      r=>{
+        println("bolck_end: \{r}")
+        @types.Syntax::Unit
+    }})
+    .parse(tokens)
+}
+
 fn statement() -> Parser[@types.Syntax] {
   fn (tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayView[@lex.Token])] {
       println("statement tokens: \{tokens}")
       let mut ast= None
       if tokens.length()>0{
         println(tokens.length())
-        let parsers = [
-            fn_main_statement,
-            fn_statement,
-            fn_fn_statement,
-            let_statement,
-            if_statement,
-            expression,  // 表达式也是一种语句
-            lparen_rparen_stmt,
-            call_fn_stmt,
-            // newline_stmt,
-            // lbrace,  // 单独解析}
-        ]
-        // todo spilt tokens
-        //   RBrace
-        let mut n =1
-        for parser in parsers{
-          println("第\{n}个解析器开始解析")
+        let parsers = {
+            "block_end": block_end,
+            "lparen_rparen_stmt": lparen_rparen_stmt,
+            "expression": expression,  // 表达式也是一种语句，note：表达式中可以嵌套if语句，因此在if语句之前
+            "fn_main_statement": fn_main_statement,
+            "fn_statement": fn_statement,
+            "fn_fn_statement": fn_fn_statement,  // 复杂函数定义
+            "let_statement": let_statement,
+            "if_statement": if_statement,
+            "call_fn_stmt": call_fn_stmt,
+            "bool_expression": bool_expression,
+            // "newline_stmt": newline_stmt,
+
+            "last_one": lparen_rparen_stmt, // 最后一个
+        }
+        for parser_name, parser in parsers{
+          println("解析器\{parser_name}开始解析")
+          if tokens[0]==@lex.Token::RBrace{
+            // 检测是否右括号，避免陷入嵌套循环
+            break
+          }
           ast= parser(tokens)
           println("ast: \{ast}")
           match ast{
             None => {
-              if n==parsers.length() && parser_context.is_top_level{
+              if parser_name=="last_one" && parser_context.is_top_level{
                 // 目前在block内部完全可能遇到所有解析器都无法解析，因为内部和外部模式匹配不同。
-                @util.die("无法解析\{tokens}")
+                // 现在单独添加了‘}’解析，此处可优化掉
+                @util.die("无法解析: \{tokens}")
               }
             }
             _ => break
           }
-          n += 1
         }
       }
       ast

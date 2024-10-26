@@ -1,6 +1,7 @@
 /// 类型检查：类型标注、类型推导、类型检查。
 /// moonbit是一门静态类型编程语言。
 /// 类型检查方法主要分为两大类：语法解析时检查、语法解析后检查
+
 fn new_tvar() -> @types.Type {
     //  Var(t=None)
     Var({val:None})
@@ -231,7 +232,34 @@ fn infer(ctx: LocalCtx, e: @types.Syntax) -> @types.Type!TyErr {
             println("函数调用结束\n")
             return_type
         }
+        If(cond, if_block, else_block)=>{
+          // 推导条件语句的类型
+          let cond_type = infer!(ctx,cond)
+          // 条件语句的类型必须时bool
+          unify!(cond_type,Bool)
+
+          // 推导if块语句的类型
+          let if_block_type = infer!(ctx,if_block)
+          // 推导else块语句的类型
+          let else_block_type = infer!(ctx,else_block)
+          // 统一if块语句和else块语句的类型
+          unify!(if_block_type,else_block_type)
+
+          // 返回统一后的类型
+          if_block_type
+        }
+        Eq(left,right) =>{
+          @types.Type::Bool
+        }
+
         // 处理其他语法的匹配
+        Seq(ast_array) =>{
+            let mut ast_type=@types.Type::Unit
+            for ast in ast_array{
+              ast_type= infer!(ctx, ast)
+            }
+            ast_type
+        }
         // _ => unimplemented!() // 这里可以添加更多的处理逻辑
     }
 }

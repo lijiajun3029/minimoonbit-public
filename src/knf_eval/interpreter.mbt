@@ -7,10 +7,6 @@ pub typealias Name = @types.Name
 
 pub typealias InterpreterLocalVars = @immut/hashmap.T[Name, Value]
 
-// 自定义清除日志函数
-fn println(s:String) -> Unit{
-  ()
-}
 pub enum Value {
   Unit
   Int(Int)
@@ -188,10 +184,10 @@ pub fn KnfInterpreter::eval(
         _ => fail!("type mismatch, ifle expects Int or Double")
       }
     }
-    Let((x, _), e1, e2) => {
-      println("提示: Let: \{x}")
+    Let((name, _), e1, e2) => {
+      println("提示: Let: name=\{name}, e1=\{e1}, e2=\{e2}")
       let v = self.eval!(env, e1)
-      let new_env = env.add(x, v)
+      let new_env = env.add(name, v)
       // self.eval!(new_env, e2)
       match e2{
         Unit => v
@@ -310,6 +306,7 @@ pub fn KnfInterpreter::eval(
     Seq(knf_array) => {
       // 评估入口, 但是body也会再次进入
       let mut current_env = env; // 保存当前的环境
+      // let current_env = env; // 保存当前的环境
       let mut result = Unit
       for knf in knf_array{
         // println("\n重置的评估环境env：\{env}")

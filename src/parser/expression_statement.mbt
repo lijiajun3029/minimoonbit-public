@@ -9,11 +9,14 @@ fn atomic(tokens : ArrayView[@lex.Token]) -> (@types.Syntax, ArrayView[@lex.Toke
   )
   .and(rparen)
   .map(fn { ((_, expr), _) => expr })   // 忽略括号
+  .or(if_statement)
   .or(number)
   .or(add_sub_number)
   .or(boolean)
+  // .or(bool_expression)
   .or(var)
   .or(add_sub_var)
+  // .or(statement())
   .parse(tokens)
 }
 
@@ -78,4 +81,39 @@ fn expression(tokens : ArrayView[@lex.Token]) -> (@types.Syntax, ArrayView[@lex.
     },
   )
   .parse(tokens)
+}
+
+// 布尔表达式解析器，支持比较运算符和布尔逻辑运算
+fn bool_expression(tokens : ArrayView[@lex.Token]) -> (@types.Syntax, ArrayView[@lex.Token])? {
+    // 解析基本布尔原子表达式，比如 (expression) 或者是一个具体的布尔值
+    let atomic_bool_expr = lparen
+        // .and(expression)  // 支持嵌套的表达式
+        .and(statement())   // todo check
+        .and(rparen)
+        .map(fn { ((_, expr), _) => expr })   // 忽略括号
+        .or(expression)
+        .or(call_fn_stmt)
+
+    // 解析比较操作符 ==, !=, <, <=, >, >=
+    let compare_expr = 
+        atomic_bool_expr
+        // statement()
+        // Parser(call_fn_stmt).or(expression)
+        // expression
+        // expression
+        .and(
+            eqeq.or(lteq)   // todo 
+            .and(atomic_bool_expr)
+            // .and(statement())
+            // .and(expression)
+        )
+        .map(fn { (left, (_,right)) => 
+            @types.Syntax::Eq(left,right)
+            // match maybe_op_right {
+            //     Some((op, right)) => @types.Syntax::Eq(left, right, op, kind=None),
+            //     None => left  // 如果没有比较运算符，直接返回 atomic_bool_expr
+            // }
+        });
+
+    compare_expr.parse(tokens)
 }

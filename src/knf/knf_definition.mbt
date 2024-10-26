@@ -29,7 +29,7 @@ pub enum Knf {
   Put(Name, Name, Name)   // 数组
   ExternalArray(Name)
   ExternalFunctionApplication(String, Array[Name])
-  Seq(Array[Knf])   // 饮鸩止渴
+  Seq(Array[Knf])   // 自行添加的，饮鸩止渴
 } derive(Show, Eq)
 
 pub struct FuncDef {

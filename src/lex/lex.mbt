@@ -61,9 +61,14 @@ pub fn lex(context : Context) -> Unit {
       }
     }
     '=' => {
-      // todo ==, =>
-      array.push(Assign)
+      // todo =>
       context.offset += 1
+      if str[context.offset]=='='{
+        context.array.push(EqEq)
+        context.offset += 1
+      }else{
+        array.push(Assign)
+      }
     }
     '>' => {
       // todo >=
@@ -71,9 +76,13 @@ pub fn lex(context : Context) -> Unit {
       context.offset += 1
     }
     '<' => {
-      // todo <=
-      array.push(Lt)
       context.offset += 1
+      if str[context.offset]=='='{
+        context.array.push(LtEq)
+        context.offset += 1
+      }else{
+        array.push(Lt)
+      }
     }
     '(' => {
       array.push(LParen)

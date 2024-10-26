@@ -247,15 +247,22 @@ fn call_fn_stmt(tokens: ArrayView[@lex.Token]) -> Option[(@types.Syntax, ArrayVi
         Fun_name(fun_name) => @types.Syntax::Var(fun_name)  // 中间解析,可以简化最终解析; Letrec
       })
     .and(lparen)
-    .and(
-          // var.many()
+    .and({
+          // @util.die("adfasfasdf")
+          // statement()
           statement().many()
+          // var.many()
           // .and(comma).many()
-        )
-
-    .and(rparen)
-    .map(fn {  (((fun_name,_),array_params),_) => {
-      @types.Syntax::App(fun_name,array_params)
+        }
+    )
+    .and({
+      // @util.die("adfasfasdf")
+      println(tokens)
+      rparen
+      })
+    .map(fn {(((fun_name,_),array_params),_) => {
+        // @types.Syntax::App(fun_name, [array_params])
+        @types.Syntax::App(fun_name, array_params)
     }})
     .parse(tokens)
 }

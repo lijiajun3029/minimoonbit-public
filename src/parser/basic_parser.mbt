@@ -58,6 +58,23 @@ let rbrace : Parser[@lex.Token] = ptoken(
   },
 )
 
+let rbrace_skip : Parser[@lex.Token] = ptoken_skip(
+  fn {
+    RBrace => true
+    _ => false
+  },
+)
+
+let rbrace_detect : Parser[@lex.Token] = ptoken_detect(
+  fn {
+    RBrace => {
+      println("检测到了'}'")
+      true
+    }
+    _ => false
+  },
+)
+
 let mul_div : Parser[@lex.Token] = ptoken(
     fn {
       Mul | Div => true
@@ -80,6 +97,16 @@ let semicolon : Parser[@lex.Token] = ptoken(
         false
         }
     },
+)
+
+let semicolon_detect : Parser[@lex.Token] = ptoken_detect(
+  fn {
+    Semicolon => {
+      println("检测到了';'")
+      true
+    }
+    _ => false
+  },
 )
 
 let newline : Parser[@lex.Token] = ptoken(
@@ -130,8 +157,19 @@ let comma_skip  : Parser[@lex.Token] = ptoken_skip(fn {
     Comma => true
     _ => false
 })
+
 let assign : Parser[@lex.Token] = ptoken(fn {
     Assign => true
+    _ => false
+})
+
+let eqeq : Parser[@lex.Token] = ptoken(fn {
+    EqEq => true
+    _ => false
+})
+
+let lteq : Parser[@lex.Token] = ptoken(fn {
+    LtEq => true
     _ => false
 })
 
@@ -208,7 +246,8 @@ let add_sub_var : Parser[@types.Syntax] = add_sub.and(ptoken(fn { // 变量
     _ => false
   })).map(fn {
     (Add,Identifier(name)) => {
-      @types.Syntax::Neg(@types.Syntax::Var(name),kind=Some(@types.Kind::Int))
+      // @types.Syntax::Neg(@types.Syntax::Var(name),kind=Some(@types.Kind::Int))
+      @types.Syntax::Var(name)
     }
     (Sub,Identifier(name)) => {
       @types.Syntax::Neg(@types.Syntax::Var(name),kind=Some(@types.Kind::Int))

@@ -77,21 +77,19 @@ pub fn KnfEnv::to_knf(self : KnfEnv, ast : @types.Syntax) -> Knf! { // !Failure
         )
     }
     App(fun_name,array_params) => {
+      println("\n提示App")
       let array_params_Name=[]
       for param in array_params{
         // 参数先to_knf,递归调用
-        
         // 参数绑定变量名
         let tmp = self.new_temp()
+        println("提示param: \{param}")
         let tmp_knf =Let((tmp,@types.Type::Int),
               self.to_knf!(param),
               Unit)
         knf_array.push(tmp_knf)
         array_params_Name.push(tmp)
-
-
         // array_params_Name.push(Name::name_only(self.to_knf!(param).to_string()))
-
       }
       match fun_name{
         Var(fun_name_str) => {
@@ -107,8 +105,9 @@ pub fn KnfEnv::to_knf(self : KnfEnv, ast : @types.Syntax) -> Knf! { // !Failure
             let tmp_knf =Let((tmp,@types.Type::Int),
               Apply(fun_name_Name, array_params_Name),
               Unit)
-            knf_array.push(tmp_knf)
-            Var(tmp)
+            // knf_array.push(tmp_knf)
+            // Var(tmp)
+            tmp_knf
             
           }
         }
@@ -116,17 +115,36 @@ pub fn KnfEnv::to_knf(self : KnfEnv, ast : @types.Syntax) -> Knf! { // !Failure
       }
     }
     If(cond, then, els) => {
-      let cond_name = self.new_temp()
+      let cond_left_name = self.new_temp()
+      let cond_right_name = self.new_temp()
+      match cond{
+        Eq(left,right) => {
+          let cond_left_knf=self.to_knf!(left)
+          let tmp1 = Knf::Let((cond_left_name,@types.Type::Int),cond_left_knf,Knf::Unit)
+          knf_array.push(tmp1)
 
-      // let cond_name = <cond> in
-      // if cond_name then <then> else <els>
-      // Knf::Let(
-      //   (cond_name,@types.Type::Bool),
-      //   self.to_knf!(cond),
-      //   Knf::IfEq(cond_name, then, self.to_knf!(els),Knf::Unit)
-      // )
-      Knf::Unit
+
+          let cond_right_knf=self.to_knf!(right)
+          let tmp2 = Knf::Let((cond_right_name,@types.Type::Int),cond_right_knf, Knf::Unit)
+          knf_array.push(tmp2)
+
+          println("提示: \{cond_left_name}")
+          println("提示: \{tmp1}")
+          println("提示: \{cond_right_name}")
+          println("提示: \{tmp2}")
+          println("提示knf_array: \{knf_array}")
+        }
+        // todo
+        // _ =>{} 
+      }
+      let result = self.new_temp()
+      Knf::Let(
+        (result, @types.Type::Int),
+        Knf::IfEq(cond_left_name, cond_right_name, self.to_knf!(then), self.to_knf!(els)),
+        Knf::Unit
+      )
     }
+    
     Seq(ast_array)=>{
       let new_ast_array=[]
       for ast in ast_array{
@@ -149,7 +167,6 @@ pub fn KnfEnv::seq_to_knf(self : KnfEnv, ast : @types.Syntax) -> Knf! {
         knf_array.push(knf)
       }
       Knf::Seq(knf_array)
-      // Knf::Unit
     }
     _ => Knf::Unit
   }

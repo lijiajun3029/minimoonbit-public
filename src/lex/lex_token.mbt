@@ -46,7 +46,7 @@ pub enum Token {
   Assign  // =
   EqEq // ==
   Lt // <
-  Le  // <=
+  LtEq  // <=
   Ne  // !=
   Ge  // >=
   Gt  // >
