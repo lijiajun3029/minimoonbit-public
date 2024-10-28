@@ -1,3 +1,4 @@
+// 计算knf表达式最大计数
 pub fn knf_max_counter(knf : Knf) -> Int {
   match knf {
     Unit => 0

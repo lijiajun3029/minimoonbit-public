@@ -147,6 +147,7 @@ pub fn KnfInterpreter::eval(
       }
     }
     IfEq(x, y, e1, e2) => {
+      println("提示: ifEq: x=\{x}, y=\{y}, e1=\{e1}, e2=\{e2}")
       let x = find!(env, x)
       let y = find!(env, y)
       match (x, y) {
@@ -216,11 +217,11 @@ pub fn KnfInterpreter::eval(
       
     }
     Apply(f, xs) => {
-      println("提示：Apply: f=\{f}; xs=\{xs}")
-      println("提示：env = \{env}")
+      println("\n提示：Apply: f=\{f}; xs=\{xs}")
+      // println("提示：env = \{env}")
       println("提示：f = \{f}")
       let f = find!(env, f)
-      println("提示：f = \{f}")
+      // println("提示：f = \{f}")
       match f {
         Closure(f, f_env) => {
           let mut new_env = f_env.val
@@ -229,9 +230,9 @@ pub fn KnfInterpreter::eval(
             println("提示：x：\{x}")
             println("提示：xs[i]：\{xs[i]}")
             new_env = new_env.add(x, find!(env, xs[i]))
-            println("提示：new_env = \{new_env}")
+            // println("提示：new_env = \{new_env}")
           }
-          println("提示：new_env = \{new_env}")
+          // println("提示：new_env = \{new_env}")
           self.eval!(new_env, f.body)
         }
         ExternFn(name) => {
@@ -318,9 +319,9 @@ pub fn KnfInterpreter::eval(
 
         // 更新本地环境
         result= self.eval!(current_env, knf)
-        println("更新前：\{current_env}")
+        // println("更新前：\{current_env}")
         current_env = self.update_env(current_env, knf, result); // 更新环境
-        println("更新后：\{current_env}")
+        // println("更新后：\{current_env}")
 
         println("knf: \{knf} 's value: \{result}")
       }

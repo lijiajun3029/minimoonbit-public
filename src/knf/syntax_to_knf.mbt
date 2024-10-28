@@ -1,14 +1,18 @@
+// 定义本地环境为不可变hashmap
 pub typealias LocalEnv = @immut/hashmap.T[String, Type]
 
+// 定义KnfEnv结构体：可变计数器，外部不可变hashmap
 struct KnfEnv {
   mut counter : Int
   externals : @immut/hashmap.T[String, Type]
 }
 
+// 定义KnfEnv结构体初始化方法
 pub fn KnfEnv::new(externals : @immut/hashmap.T[String, Type]) -> KnfEnv {
   { counter: 1, externals }
 }
 
+// 从已经存在的Knf表达式中获得最大槽位来初始化KnfEnv的计数器
 pub fn KnfEnv::init_counter_from_existing(
   self : KnfEnv,
   existing : Knf
@@ -16,18 +20,21 @@ pub fn KnfEnv::init_counter_from_existing(
   self.counter = knf_max_counter(existing) + 1
 }
 
+// 新建临时变量名，并更新计数器
 fn KnfEnv::new_temp(self : KnfEnv) -> Name {
   let temp = Name::slot_only(self.counter)
   self.counter += 1
   temp
 }
 
+// 新建指定名称临时变量名，并更新计数器
 fn KnfEnv::new_named_temp(self : KnfEnv, name : Name) -> Name {
   let counter = self.counter
   self.counter += 1
   { ..name, slot: counter }
 }
 
+// 转换函数：根据不同的节点类型进行处理
 pub fn KnfEnv::to_knf(self : KnfEnv, ast : @types.Syntax) -> Knf! { // !Failure
   println("to_knf: \{ast}")
   match ast {
